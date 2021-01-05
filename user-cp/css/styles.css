@@ -1,0 +1,13 @@
+.no-js {
+	display:none;
+}
+.container-sm {
+	max-width:400px;
+	margin:0 auto;
+}
+.breadcrumb li.active {
+	text-transform:capitalize;
+}
+td h3, td h4 {
+	margin:0;
+}

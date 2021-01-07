@@ -1,44 +1,61 @@
 <?php
 /**
- * Base Components Loader
+ * Blog Base Components Loader
+ * 
+ * Connection to the blog database is done here. Provided not haltered
  *
- * Loads base libraries does some house-keeping
+ * Loads base libraries and does some house-keeping
  *
  * @package Sevida
  */
-// Start output buffering, then resume session if not asked to stop
+// Start output buffering
 ob_start();
+/**
+ * Wether or not to start/resume session
+ * @global bool NO_SESS Toggles creating or resumin session on/off
+ */
 if( ! defined( 'NO_SESS' ) || NO_SESS )
 	session_start();
-/**
- * Root and User-Based Directory contants
- *
- * @var ABSPATH Provided it is not defined
- * @var BASE_UTIL Provided it is not defined
- * @var USERPATH Provided it is not defined
- */
+
 if( ! defined( 'ABSPATH' ) )
+	/**
+	 * Absolute root directory where the blog is installed
+	 *
+	 * @var string ABSPATH Provided it is not defined
+	 */
 	define( 'ABSPATH', dirname( __FILE__ ) );
+
 if( ! defined( 'BASE_UTIL' ) )
+	/**
+	 * Relative root utitlities directory 
+	 *
+	 * @var string BASE_UTIL Provided it is not defined
+	 */
 	define( 'BASE_UTIL', '/utils' );
+
 if( ! defined( 'USER_UTIL' ) )
+	/**
+	 * Relative user-based utitlities directory 
+	 *
+	 * @var string USER_UTIL Provided it is not defined
+	 */
 	define( 'USER_UTIL', '/user-cp' . BASE_UTIL );
 
 // We do not wish to accept requests with 'HEAD' as method
 if ( 'HEAD' === $_SERVER['REQUEST_METHOD'] )
 	exit;
-// We use a png favicon so we do not wish to serve ico
+// In case a request to a non-existing favicon.ico file
 if ( false !== strpos( $_SERVER['REQUEST_URI'], '/favicon.ico' ) ) {
 	header( 'Content-Type: image/vnd.microsoft.icon' );
 	exit;
 }
 
 /**
- * Globalize version-based vars now because they will be defined 
+ * Globalize version vars now because they will be defined 
  * in a sub-directory file.
  */
 global $_blogVersion, $_dbVersion, $_phpVersion, $_mySQLVersion;
-// Defines the blog the software versions used in this package
+// Loads the blog version and minimal requirements information
 require( ABSPATH . BASE_UTIL . '/Blog.php' );
 // Very Bases functions which are PHP-5 compatible functions
 require( ABSPATH . BASE_UTIL . '/Base.php' );
@@ -61,7 +78,7 @@ unset($errorHandler);
 
 /**
  * PHP and mysql version check : If they do not meet the requiremnt, and error page
- * displays with an appropriate header
+ * displays with an appropriate response header
  *
  * @var string $phpVersion The current php version
  */
@@ -78,10 +95,10 @@ if ( ! extension_loaded( 'mysql' ) && ! extension_loaded( 'mysqli' ) && ! extens
 if ( ini_get( 'register_globals' ) ) {
 	if ( isset( $_REQUEST['GLOBALS'] ) )
 		showError( internalServerError(), 'GLOBALS overwrite attempt detected.' );
-	$$noUnset = array( 'GLOBALS', '_GET', '_POST', '_COOKIE', '_REQUEST', '_SERVER', '_ENV', '_FILES' );
+	$noUnset = array( 'GLOBALS', '_GET', '_POST', '_COOKIE', '_REQUEST', '_SERVER', '_ENV', '_FILES' );
 	$input = array_merge( $_GET, $_POST, $_COOKIE, $_SERVER, $_ENV, $_FILES, (isset( $_SESSION ) && is_array( $_SESSION ) ? $_SESSION : [] ) );
 	foreach ( $input as $k => $v )
-		if ( !in_array( $k, $$noUnset ) && isset( $GLOBALS[$k] ) ) {
+		if ( !in_array( $k, $noUnset ) && isset( $GLOBALS[$k] ) ) {
 			unset( $GLOBALS[$k] );
 		}
 }
@@ -152,7 +169,7 @@ startTimer();
  * If the manifest.php file does not exist, it destroys any active sessoon and
  * and redirects to a configuration file if it is not already there
  *
- * @var string
+ * @var bool SE_CONFIG
  */
 define( 'SE_KONFIG', file_exists( ABSPATH . '/Manifest.php' ) );
 if( SE_KONFIG ) {
@@ -163,8 +180,6 @@ if( SE_KONFIG ) {
 	 * Fallback values for the contants that were to be defined in Manifest.php file
 	 *
 	 * Falls back to debug mode by default
-	 *
-	 * @global  
 	 */
 	define( 'SE_DEBUG', true );
 	define( 'BASE_URL', getBaseUrl() );
@@ -174,6 +189,8 @@ if( SE_KONFIG ) {
 	 * Checks if we are not already running a configuration, then we redirect (once) to it
 	 *
 	 * Checks and destroys any active session
+	 * 
+	 * @global BASEPATH
 	 */
 	if ( ! defined('SE_CONFIG') ) {
 		if( session_id() )
@@ -182,25 +199,42 @@ if( SE_KONFIG ) {
 		redirect( BASEPATH . '/user-cp/config.php' );
 	}
 }
-
-// Relative images directory to be appended or prepended with another abspath
+/**
+ * Relative images directory to be appended or prepended with another abspath
+ * 
+ * @var string DIR_IMAGES
+ */
 define( 'DIR_IMAGES', '/images/' );
-// Relative directory name fore saving backups
+/**
+ * Directory for saving timely generated backups, relative to root
+ * 
+ * @var string DIR_BACKUP
+ */
 define( 'DIR_BACKUP', '/storage/backup/' );
-// Relative directory for saving cached pages
-define( 'DIR_CACHES', '/storage/cache/' );
-// Relative directory 
+/**
+ * Directory for saving cached pages, relative to root
+ * 
+ * @var string DIR_CACHES 
+ */
+define( 'DIR_CACHES', '/storage/caches/' );
+/**
+ * Directory where uploaded files a saved, relative to root
+ * 
+ * @var string DIR_UPLOAD
+ */
 define( 'DIR_UPLOAD', '/storage/uploads/' );
 
-/**
- * Registers and auto loader for hamdling unincluded classes loading
- *
- * @param string $className Class name of the required class
- */
-spl_autoload_register( function( $className ) {
-    $className = strNoBs( $className );
-	require( ABSPATH . BASE_UTIL . DIRECTORY_SEPARATOR . $className . '.php' );
-} );
+// Registers and auto loader for hamdling unincluded classes loading
+spl_autoload_register(
+	/**
+	 * The custom callback to be assigned
+	 * @param mixed $className Class name of the required class
+	 */
+	function( $className ) {
+    	$className = strNoBs( $className );
+		require( ABSPATH . BASE_UTIL . DIRECTORY_SEPARATOR . $className . '.php' );
+	}
+);
 
 // Loads general functions for performing little tasks and parsing 
 require( ABSPATH . BASE_UTIL . '/Util.php' );
@@ -210,33 +244,35 @@ require( ABSPATH . BASE_UTIL . '/Util.php' );
  */
 define( 'USERPATH', BASEPATH . '/user-cp' );
 /**
- * @global isLoggedIn
- * @var string Caches user login status returned by the function call
+ * @global bool isLoggedIn()
+ * @var string LOGGED_IN Caches user login status returned by the function call
  */
 define( 'LOGGED_IN', isLoggedIn() );
 
 /**
- * @var string Checks if only minimum functions are required of this file, breaks if true
+ * Checks if only minimum functions are required of this file, breaks if true
+ * 
+ * @global bool MINI_LOAD Tell if we are loading database and site options
  */
 if( defined('MINI_LOAD') && MINI_LOAD )
 	return false;
 
+global $db;
 /**
  * Instantiate a database connection using defined variables from Manifest.php
  *
  * Displays an error page on connection failure
  *
- * @global Database Database class extending PHP PDO class
- * @global DB_HOST
- * @global DB_NAME
- * @global DB_CHRS
- * @global DB_USER
- * @global DB_PASS
- * @global showError
- * @var Database %db Relative images directory to be appended or prepended with another abspath
+ * @global mixed Database class extending PHP PDO class
+ * @global string DB_HOST
+ * @global string DB_NAME
+ * @global string DB_CHRS
+ * @global string DB_USER
+ * @global string DB_PASS
+ * @global void showError
+ * @var mixed $db Relative images directory to be appended or prepended with another abspath
  * @throws Exception Provided the connection failed
  */
-global $db;
 try {
 	$db = new Database( DB_HOST, DB_NAME, DB_CHRS, DB_USER, DB_PASS );
 	if( ! $db->dbConnect() )
@@ -245,7 +281,7 @@ try {
 	$GLOBALS['db'] = $db;
 } catch( Exception $e ) {
 	unset($db);
-	// Show user some nice error message
+	// Show user some nice connection error message
 	showError(
 		internalServerError(),
 		'This either means that the userName and password information in your Manifest.php file is incorrect or we can’t contact the database server at localhost. This could mean your host’s database server is down.'.
@@ -256,20 +292,22 @@ try {
 		'<p>You may also </p><p class="step"><a href="' . BASEPATH . '/" class="btn btn-large">Retry</a></p>'
 	);
 }
-
+global $cfg;
 /**
- * Loads a configuration from the database
+ * Load blog configuration from database
  *
  * If no installation is found, it clears any active session and redirects to an installation
  * page if we are not running any
  *
- * @global Database $db Holding the database PDO object
- * @global Config
- * @var Config $cfg Relative images directory to be appended or prepended with another abspath
+ * @var \Database $db Holding the database PDO object
+ * @var \Config $cfg Holds the blog configuration
+ * @var $GLOBALS['cfg']
  * @throws Exeption Provided the query failed
  */
-global $cfg;
 try {
+	/**
+	 * 
+	 */
 	$cfg = $db->prepare( 'SELECT metaKey, metaValue FROM Config WHERE metaKey IN (?,?,?,?,?,?)' );
 	$cfg->execute( [ 'blogName', 'blogDesc', 'blogDate', 'installed', 'searchable', 'permalink' ] );
 	if( 0 === $cfg->rowCount() )
@@ -279,7 +317,7 @@ try {
 	$GLOBALS['cfg'] = $cfg;
 } catch( Exception $e ) {
 	unset($cfg);
-	// Go ahread to installation
+	// Go ahread to the installation
 	if ( ! defined('SE_INSTALL') ) {
 		if( session_id() )
 			session_destroy();

@@ -1,33 +1,24 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
+ * Blog Requests Handler
+ * 
+ * Any unhandled request is processed by this file
+ * URL rewriting is done here on this page
+ * Page caching is indirectly handled by this file
  *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * @package Sevida
+ */
+
+/**
+ * Toggles rewriting unhandled URLs: Off means a 404 page always
+ * 
+ * @var bool SE_REWRITE
  */
 define( 'SE_REWRITE', true );
+
+// Load the base component loader file
 require( dirname(__FILE__) . '/Load.php' );
 
-if( 'GET' === $_SERVER['REQUEST_METHOD'] && ! LOGGED_IN ) {
-	$cacheKey = ABSPATH . DIR_CACHES . md5($_SERVER['REQUEST_URI']) . '.html';
-	if( file_exists($cacheKey) ) {
-		$cacheUse = time() - filemtime($cacheKey);
-		if( $cacheUse <= 10 /*86400*/ ) {
-			readfile($cacheKey);
-			exit;
-		} else {
-			unlink($cacheKey);
-			unset($cacheKey);
-		}
-	}
-}
+// URLs rewrite is handed downtown
 require( ABSPATH . '/Rewrite.php' );
-if( isset($cacheKey) ) {
-	$cacheValue = ob_get_contents();
-	$cacheValue = str_replace( "\t", "", $cacheValue );
-	file_put_contents( $cacheKey, $cacheValue );
-	unset( $cacheKey, $cacheValue );
-}
+// PHP_EOL

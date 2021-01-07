@@ -1,12 +1,15 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
+ * Base generic utilities, PHP5 compatible functions
  *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * @package Sevida
+ * @subpackage Utilities
+ */
+
+/**
+ * Return the current server protocol
+ * 
+ * @return string
  */
 function getProtocol() {
 	$protocol = $_SERVER['SERVER_PROTOCOL'];
@@ -14,6 +17,11 @@ function getProtocol() {
 		$protocol = 'HTTP/1.0';
 	return $protocol;
 }
+/**
+ * Detects if we are browsing by https (secured)
+ * 
+ * @return bool
+ */
 function isHttps() {
 	if( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'ON' )
 		return true;
@@ -21,9 +29,20 @@ function isHttps() {
 		return true;
 	return false;
 }
+/**
+ * Replaces trailing slashes with forward slashes in $str
+ * 
+ * @param string $str
+ * @return string
+ */
 function strNoBs( $str ) {
 	return str_replace('\\', '/', $str);
 }
+/**
+ * Guess the base / root path of the blog
+ *
+ * @return string
+ */
 function getBasePath() {
 	$phpSelf = $_SERVER['PHP_SELF'];
 	$srcFile = $_SERVER['SCRIPT_FILENAME'];
@@ -39,18 +58,38 @@ function getBasePath() {
 	} while ( ! empty($phpSelf) );
 	return $phpSelf;
 }
+/**
+ * Guess the base url without any path segment attached
+ *
+ * @return string
+ */
 function getBaseUrl() {
 	$PROTOCOL = 'http' . ( isHttps() ? 's' : '' ) . '://';
 	return  $PROTOCOL . $_SERVER['HTTP_HOST'];
 }
+/**
+ * Sends a json header in ready to outputing a json data
+ * @return void
+ */
 function jsonHeader() {
 	header( 'Content-Type: application/json', true );
 }
+/**
+ * Prints out a json-serialized version of an array
+ * 
+ * @param array $json The array to be printed out
+ * @return void
+ */
 function jsonOutput( array $json ) {
 	jsonHeader();
 	@ob_end_clean();
 	die( json_encode($json) );
 }
+/**
+ * Tells the client not to cache the response we are sending
+ *  
+ * @return void
+ */
 function noCacheHeaders() {
 	$headers = [
 		'Expires' => 'Wed, 11 Jan 1984 05:00:00 GMT',
@@ -68,29 +107,65 @@ function noCacheHeaders() {
 	foreach ( $headers as $name => $field_value )
 		@header("{$name}: {$field_value}");
 }
+/**
+ * Sends a 500 status code: Meaning there is an internal sever error, returns a message for
+ * use with showError @see showError
+ * 
+ * @return string
+ */
 function internalServerError() {
 	$message = '500 Internal Server Error';
 	header( getProtocol() . $message, true, 500 );
 	return $message;
 }
+/**
+ * Sends a 404 response status: Meaning the requested object was not found on server
+ * 
+ * @return void
+ */
 function objectNotFound() {
-	$message = '404 Page Not Found';
-	header( getProtocol() . $message, true, 404 );
+	header( getProtocol() . '404 Page Not Found', true, 404 );
 }
+/**
+ * Redirects to a target url, without caching
+ * 
+ * @param string $targetUrl The url to reditect to
+ * @return void
+ * @exits Halters the script execution
+ */
 function redirect( $targetUrl ) {
 	noCacheHeaders();
 	header( 'Location: ' . $targetUrl );
 	exit;
 }
+/**
+ * Start the global blog timer
+ * 
+ * @global $_TIME_BEG, $_TIME_END
+ * @return void
+ */
 function startTimer() {
 	global $_TIME_BEG;
 	$_TIME_BEG = microtime(true);
 }
+/**
+ * Stop the global blog timer
+ * 
+ * @global $_TIME_BEG, $_TIME_END, $_TIME_ELP
+ * @return void
+ */
 function stopTimer() {
 	global $_TIME_BEG, $_TIME_END, $_TIME_ELP;
 	$_TIME_END = microtime(true);
 	$_TIME_ELP = $_TIME_END - $_TIME_BEG;
 }
+/**
+ * Pretty print error messages with an appropriate response status header
+ * 
+ * @param string $title An Optional error page title. An empty title defaults 'Unknown Error'
+ * @param mixed|array|object $message The error page body html or plain text
+ * @return void
+ */
 function showError( $title, $message = false ) {
 	if( ! $message ) {
 		$message = $title;

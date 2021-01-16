@@ -1,20 +1,48 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
+ * Blog Configuration Model
  *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * @package Sevida
+ * @subpackage Utilities
  */
 class Config {
-	var $blogName, $blogDesc, $blogDate, $permalink, $installed, $searchable, $about;
-	function __construct( array $data = [] ) {
-		foreach( $data as $index => $entry ) {
-			$index = $entry->metaKey;
-			$this->$index = $entry->metaValue;
-		}
+	/**
+	 * @var string
+	 */
+	public $blogName;
+	/**
+	 * @var string
+	 */
+	public $blogEmail;
+	/**
+	 * @var string
+	 */
+	public $blogDesc;
+	/**
+	 * @var string
+	 */
+	public $blogDate;
+	/**
+	 * @var string
+	 */
+	public $permalink;
+	/**
+	 * @var string
+	 */
+	public $installed;
+	/**
+	 * @var bool
+	 */
+	public $searchable;
+	/**
+	 * @var string
+	 */
+	public $about;
+
+	final public function __construct( array $data = [] ) {
+		foreach( $data as $index => $entry )
+			$this->$index = $entry;
 		$this->permalink = (int) $this->permalink;
+		$this->searchable = $this->searchable === 'true';
 	}
 }

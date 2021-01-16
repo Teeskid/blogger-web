@@ -10,7 +10,7 @@
  */
 require( dirname(__FILE__) . '/Load.php' );
 require( ABSPATH . USER_UTIL . '/media.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
 
@@ -29,7 +29,7 @@ if( isset($_POST['submit']) )
 		exit;
 	}
 }
-else if( isset($_POST['restore']) ) {
+elseif( isset($_POST['restore']) ) {
 	require( ABSPATH . USER_UTIL . '/lib-restore.php' );
 	$o = getPostData();
 	$zip = new ZipArchive();
@@ -37,7 +37,7 @@ else if( isset($_POST['restore']) ) {
 	if(empty($file) === true) {
 		$error[] = 'please select a backup file (bin format)';
 	}
-	else if($zip->open($file) === false || $zip->numFiles === 0) {
+	elseif($zip->open($file) === false || $zip->numFiles === 0) {
 		$error[] = 'backup is corrupted';
 	}
 	else {
@@ -52,7 +52,7 @@ else {
 
 }
 $error = implode('<br/>', $error);
-$_page = new Page( 'Backup', '/user-cp/backup.php' );
+$_page = new Page( 'Backup', USERPATH . '/backup.php' );
 include( 'html-header.php' );
 ?>
 <nav>
@@ -68,8 +68,8 @@ include( 'html-header.php' );
 		<li class="tab" role="presentation"><a href="#restore">IMPORT</a></li>
 		<li class="tab" role="presentation"><a href="#backup">EXPORT</a></li>
 	</ul>
-	<div class="card-content" id="restore">
-		<form class="form" role="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post" enctype="multipart/form-data">
+	<div class="card-body" id="restore">
+		<form class="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post" enctype="multipart/form-data">
 <?php
 eAlert( $error, 'error' )
 ?>
@@ -88,7 +88,7 @@ eAlert( $error, 'error' )
 			</div>
 		</form>
 	</div>
-	<div class="card-content" id="backup" style="display:none">
+	<div class="card-body" id="backup" style="display:none">
 <?php
 if($lastBackup = _v('last_backup')) {
 	$lastBackup = json_decode($lastBackup);
@@ -100,7 +100,7 @@ if($lastBackup = _v('last_backup')) {
 <?php
 }
 ?>
-		<form class="form" role="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post">
+		<form class="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post">
 			<div class="">
 				<p>Choose what to export</p>
 				<p><label><input type="radio" class="filled-in" name="backup" value="*" checked /><span>All content</span></label></p>
@@ -116,7 +116,7 @@ if($lastBackup = _v('last_backup')) {
 	</div>
 </div>
 <?php
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 M.Tabs.init(document.querySelector(".tabs"));
 document.getElementById("select-all").onchange = function(e) {
 	var se = e.target.closest("input");

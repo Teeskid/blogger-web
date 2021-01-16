@@ -8,20 +8,20 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $sqlTrend = $_VARS['trend'];
-$sqlWhere = [ 'a.subject=?', 'a.status=?' ];
+$sqlWhere = [ 'a.rowType=?', 'a.status=?' ];
 $sqlOrder = [ 'a.id DESC' ];
 $theCrumb = [ [ 'index.php', 'Home' ] ];
 switch( $sqlTrend ) {
 	case 'tag':
-		$theTerm = $db->prepare( 'SELECT id, title FROM Term WHERE subject=? AND permalink=? LIMIT 1' );
+		$theTerm = $db->prepare( 'SELECT id, title FROM Term WHERE rowType=? AND permalink=? LIMIT 1' );
 		$theTerm->execute( [ 'tag', $_VARS['value'] ] );
 		if( 0 === $theTerm->rowCount() )
 			redirect( BASEPATH . '/404.php' );
 		$theTerm = $db->fetchClass( $theTerm, 'Term' );
-		$theTerm->subject = 'tag';
+		$theTerm->rowType = 'tag';
 		$theTerm->permalink = Rewrite::termUri( $theTerm );
 		$theCrumb[] = $theTerm->title;
 		$sqlWhere[] = 'EXISTS(SELECT postId FROM TermLink WHERE TermLink.termId=' . $db->quote( $theTerm->id ) . ' AND TermLink.postId=a.id)';
@@ -30,14 +30,14 @@ switch( $sqlTrend ) {
 		unset($theTerm);
 		break;
 	case 'category':
-		$theTerms = $db->prepare( 'SELECT a.id, a.title, a.permalink FROM Term a WHERE a.subject=:subject AND (a.permalink=:permalink OR id=(SELECT b.master FROM Term b WHERE b.permalink=:permalink LIMIT 1)) ORDER BY a.master DESC' );
-		$theTerms->execute( [ 'subject' => 'cat', 'permalink' => $_VARS['value'] ] );
+		$theTerms = $db->prepare( 'SELECT a.id, a.title, a.permalink FROM Term a WHERE a.rowType=:rowType AND (a.permalink=:permalink OR id=(SELECT b.master FROM Term b WHERE b.permalink=:permalink LIMIT 1)) ORDER BY a.master DESC' );
+		$theTerms->execute( [ 'rowType' => 'cat', 'permalink' => $_VARS['value'] ] );
 		if( 0 === $theTerms->rowCount() )
 			redirect( BASEPATH . '/404.php' );
 		$theTerms = $theTerms->fetchAll( PDO::FETCH_CLASS, 'Term' );
 		if( isset($theTerms[1]) ) {
 			$theTerm0 = $theTerms[1];
-			$theTerm0->subject = 'cat';
+			$theTerm0->rowType = 'cat';
 			$theTerm0->permalink = Rewrite::termUri( $theTerm0 );
 			$theCrumb[] = [ $theTerm0->permalink, $theTerm0->title ];
 			unset( $theTerm0, $theTerms[1] );
@@ -113,11 +113,11 @@ include( ABSPATH . BASE_UTIL . '/HeadHtml.php' );
 echo '<ul class="breadcrumb">';
 foreach( $theCrumb as $entry ) {
 	if( is_array($entry) ) {
-		$index = htmlentities($entry[0]);
-		$entry = htmlspecialchars($entry[1]);
+		$index = escHtml($entry[0]);
+		$entry = escHtml($entry[1]);
 		echo '<li><a href="', $index, '">', $entry, '</a></li>';
 	} else {
-		$entry = htmlspecialchars($entry);
+		$entry = escHtml($entry);
 		echo '<li class="active">', $entry, '</li>';
 	}
 }
@@ -125,7 +125,7 @@ unset( $theCrumb, $index, $entry );
 echo '</ul>';
 ?>
 <div class="heading">
-	<h2><a href="#main-feed"><?=htmlspecialchars($_page->title)?></a></h2>
+	<h2><a href="#main-feed"><?=escHtml($_page->title)?></a></h2>
 	<div id="feedView" class="btn-group" role="group">
 		<button type="button" data-view="list" class="active"><?=icon('list-ul')?></button>
 		<button type="button" data-view="grid"><?=icon('th')?></button>
@@ -143,13 +143,13 @@ if( isset($thePosts[0]) ) {
 		$post->permalink = Rewrite::postUri( $post );
 		$post->thumbnail = json_decode($post->thumbnail);
 		$post->thumbnail = Media::getImage( $post->thumbnail, 'large' );
-		$post->thumbnail = htmlentities($post->thumbnail);
-		$post->excerpt = htmlspecialchars($post->excerpt);
-		$post->permalink = htmlentities($post->permalink);
+		$post->thumbnail = escHtml($post->thumbnail);
+		$post->excerpt = escHtml($post->excerpt);
+		$post->permalink = escHtml($post->permalink);
 ?>
 	<article>
 		<div class="feed-image">
-			<img alt="<?=htmlentities($post->title)?>" src="<?=$post->thumbnail?>" />
+			<img alt="<?=escHtml($post->title)?>" src="<?=$post->thumbnail?>" />
 			<div class="feed-date">
 				<span class="dd"><?=$post->posted->day?></span>
 				<span class="mm"><?=$post->posted->month?></span>
@@ -161,7 +161,7 @@ if( isset($thePosts[0]) ) {
 				<a href="#"><?=$iconWa?></a>
 			</div>
 		</div>
-		<h3><a href="<?=$post->permalink?>"><?=htmlspecialchars($post->title)?></a></h3>
+		<h3><a href="<?=$post->permalink?>"><?=escHtml($post->title)?></a></h3>
 		<p>
 			<span class="excerpt"><?=$post->excerpt?>...</span>
 			<a href="<?=$post->permalink?>" class="btn">READ MORE</a>
@@ -273,7 +273,7 @@ unset($cat);
 ?>
 </div>
 <?php
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 	$(document).ready(function(){
 		$("ul#feedView a[data-view]").click(function(e){
 			e.preventDefault();

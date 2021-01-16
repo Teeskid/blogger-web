@@ -696,28 +696,28 @@ class XmlParser
                 $resName = "scrollbarAlwaysDrawVerticalTrack";
                 break;
             case 0x101006a:
-                $resName = "absListViewStyle";
+                $resName = "absListviewCounttyle";
                 break;
             case 0x101006b:
-                $resName = "autoCompleteTextViewStyle";
+                $resName = "autoCompleteTextviewCounttyle";
                 break;
             case 0x101006c:
                 $resName = "checkboxStyle";
                 break;
             case 0x101006d:
-                $resName = "dropDownListViewStyle";
+                $resName = "dropDownListviewCounttyle";
                 break;
             case 0x101006e:
                 $resName = "editTextStyle";
                 break;
             case 0x101006f:
-                $resName = "expandableListViewStyle";
+                $resName = "expandableListviewCounttyle";
                 break;
             case 0x1010070:
                 $resName = "galleryStyle";
                 break;
             case 0x1010071:
-                $resName = "gridViewStyle";
+                $resName = "gridviewCounttyle";
                 break;
             case 0x1010072:
                 $resName = "imageButtonStyle";
@@ -726,7 +726,7 @@ class XmlParser
                 $resName = "imageWellStyle";
                 break;
             case 0x1010074:
-                $resName = "listViewStyle";
+                $resName = "listviewCounttyle";
                 break;
             case 0x1010075:
                 $resName = "listViewWhiteStyle";
@@ -762,7 +762,7 @@ class XmlParser
                 $resName = "scrollbarStyle";
                 break;
             case 0x1010080:
-                $resName = "scrollViewStyle";
+                $resName = "scrollviewCounttyle";
                 break;
             case 0x1010081:
                 $resName = "spinnerStyle";
@@ -774,10 +774,10 @@ class XmlParser
                 $resName = "tabWidgetStyle";
                 break;
             case 0x1010084:
-                $resName = "textViewStyle";
+                $resName = "textviewCounttyle";
                 break;
             case 0x1010085:
-                $resName = "webViewStyle";
+                $resName = "webviewCounttyle";
                 break;
             case 0x1010086:
                 $resName = "dropDownItemStyle";
@@ -792,7 +792,7 @@ class XmlParser
                 $resName = "spinnerItemStyle";
                 break;
             case 0x101008a:
-                $resName = "mapViewStyle";
+                $resName = "mapviewCounttyle";
                 break;
             case 0x101008b:
                 $resName = "preferenceScreenStyle";
@@ -1938,7 +1938,7 @@ class XmlParser
                 $resName = "textAppearanceButton";
                 break;
             case 0x1010208:
-                $resName = "listSeparatorTextViewStyle";
+                $resName = "listSeparatorTextviewCounttyle";
                 break;
             case 0x1010209:
                 $resName = "streamType";
@@ -2466,7 +2466,7 @@ class XmlParser
                 $resName = "vmSafeMode";
                 break;
             case 0x10102b9:
-                $resName = "webTextViewStyle";
+                $resName = "webTextviewCounttyle";
                 break;
             case 0x10102ba:
                 $resName = "restoreAnyVersion";
@@ -2700,7 +2700,7 @@ class XmlParser
                 $resName = "textColorAlertDialogListItem";
                 break;
             case 0x1010307:
-                $resName = "loopViews";
+                $resName = "loopviewCount";
                 break;
             case 0x1010308:
                 $resName = "dialogTheme";
@@ -2904,7 +2904,7 @@ class XmlParser
                 $resName = "spinnersShown";
                 break;
             case 0x101034c:
-                $resName = "calendarViewShown";
+                $resName = "calendarviewCounthown";
                 break;
             case 0x101034d:
                 $resName = "state_multiline";
@@ -2925,7 +2925,7 @@ class XmlParser
                 $resName = "editTextBackground";
                 break;
             case 0x1010353:
-                $resName = "horizontalScrollViewStyle";
+                $resName = "horizontalScrollviewCounttyle";
                 break;
             case 0x1010354:
                 $resName = "layerType";
@@ -2955,7 +2955,7 @@ class XmlParser
                 $resName = "datePickerStyle";
                 break;
             case 0x101035d:
-                $resName = "calendarViewStyle";
+                $resName = "calendarviewCounttyle";
                 break;
             case 0x101035e:
                 $resName = "textEditSidePasteWindowLayout";
@@ -3270,7 +3270,7 @@ class XmlParser
                 $resName = "permissionFlags";
                 break;
             case 0x10103c8:
-                $resName = "checkedTextViewStyle";
+                $resName = "checkedTextviewCounttyle";
                 break;
             case 0x10103c9:
                 $resName = "showOnLockScreen";

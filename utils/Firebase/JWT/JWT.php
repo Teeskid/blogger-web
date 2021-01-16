@@ -357,8 +357,7 @@ class JWT
      *
      * @param int $errno An error number from json_last_error()
      *
-     * @return void
-     */
+         */
     private static function handleJsonError($errno)
     {
         $messages = array(

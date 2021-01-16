@@ -1,182 +1,180 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Blog Installation Page
+ * 
+ * @package Sevida
+ * @subpackage Administration
+ */
+ /**
+  * @var bool
+  */
+define( 'SE_HTML', true );
+/**
+ * We are installing
+ * @var bool
  */
 define( 'SE_INSTALL', true );
 
+/** Load the blog bootstrap file and utilities */
 require( dirname(__DIR__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . USER_UTIL . '/InstallUtil.php' );
 
-if( isset($cfg) && is_object($cfg) )
-	redirect( 'login.php' );
+if( get_class($cfg) === 'Config' )
+	redirect( USERPATH . '/login.php' );
 
 noCacheHeaders();
 
-$cfg = new Config();
-$cfg->blogName = 'Sevida';
-$cfg->installed = '2020';
-
-$step = request('step') ?? 1;
+/**
+ * @var \Config
+ */
+$cfg = new Config( [
+	'blogName' => 'Sevida',
+	'installed' => '2020'
+] );
+/**
+ * @var int
+ */
+$step = (int) request('step');
 
 $errors = [];
-
+$causes = [];
 if( isPostRequest() ) {
-	$install = request( 'blogName', 'email', 'userName', 'password' );
-
-	if( strlen( $install->blogName ) < 3 )
-		$errors[] = 'blogName too short';
-	if( strlen($install->blogName) > 15 )
-		$errors[] = 'blogName too long';
-	if( preg_match('/[^\w\_\-\s]/', $install->blogName) )
-		$errors[] = 'invalid website blogName';
-	if( strlen($install->email) < 8 || ! testEmail($install->email) )
-		$errors[] = 'invalid admin email';
-	if( strlen($install->userName) < 5 || preg_match('/[^\w\@\.\_\s]/i', $install->userName) )
-		$errors[] = 'invalid admin userName';
-	if( strlen($install->password) < 5 )
-		$errors[] = 'invalid admin password';
-	if( strlen($install->password) > 15 )
-		$errors[] = 'admin password too long';
-
-	if( isset($errors[0]) ) {
-		$errors = implode( '<br>', $errors );
-		showError( 'Form Error', $errors );
+	/**
+	 * @var object
+	 */
+	$install = request( 'userName', 'password', 'blogName', 'blogEmail', 'blogDesc', 'searchable' );
+	/**
+	 * Validate the submitted data
+	 */
+	if( preg_match( REGEX_VALID_NAME, $install->userName ) ) {
+		$install->email = null;
+	} elseif ( preg_match( REGEX_VALID_EMAIL, $install->userName ) ) {
+		$install->email = $install->userName;
+		$install->userName = null;
+	} else {
+		$causes[] = 'userName';
+		$errors[] = 'username must be 5 characters and more, no special characters';
 	}
-
-	require( ABSPATH . USER_UTIL . '/LoginUtil.php' );
-	require( ABSPATH . USER_UTIL . '/InstallUtil.php' );
-
-	$install->userName = makePermalink( $install->userName );
-	$install->password = encryptPassword( $install->password );
-	$install->email = strtolower( $install->email );
-	$install->searchable = json_encode( ! isset($install->searchable) );
-
-	try {
-		dropTables();
-		createTables();
-
-		$insert = $db->prepare( 'INSERT INTO Config (metaKey, metaValue) VALUES (?,?),(?,?),(?,?),(?,?),(?,?),(?,?)' );
-		$insert = $insert->execute( [
-			'blogName', $install->blogName,
-			'blogEmail', $install->email,
-			'blogDate', 'Y m d H:i:s A',
-			'permalink', 0,
-			'installed', time(),
-			'searchable', $install->searchable
-		] );
-		$insert = $db->prepare( 'INSERT INTO Term (id,title,permalink,subject) VALUES (1,?,?,?)' );
-		$insert = $insert->execute( [ 'Uncategorized', 'uncategorized', 'cat' ] );
-
-		$insert = $db->prepare( 'INSERT INTO Person (id,userName,email,password,role) VALUES (1,?,?,?,?)' );
-		$insert = $insert->execute( [ $install->userName, $install->email, $install->password, 'owner' ] );
-
-		$step = 2;
-	} catch( Exception $e ) {
-		dropTables();
-		$errors[] = $e->getMessage();
+	if( 5 > strlen($install->blogName) ) {
+		$causes[] = 'blogName';
+		$errors[] = 'blog name too short';
+	} elseif( ! preg_match( REGEX_VALID_NAME, $install->blogName ) ) {
+		$causes[] = 'blogName';
+		$errors[] = 'invalid blog name';
 	}
-	if( count($errors) != 0 ) {
-		$errors = implode( '<br>', $errors );
-		showError( $errors );
+	$install->searchable = json_encode( $install->searchable === 'true' );
+	if( empty($errors) ) {
+		try {
+			// populate database tables
+			createTables();
+			/** commit data to database */
+			$install->role = 'owner';
+			$install->password = password_hash( $install->password, PASSWORD_BCRYPT );
+			$install = get_object_vars($install);
+			$inserts = $db->prepare(
+				'REPLACE INTO person SET userName=:userName,email=:email,password=:password,role=:role,id=0; ' .
+				"REPLACE INTO config (metaKey, metaValue) VALUES ('blogName',:blogName),('blogEmail',:blogEmail),('blogDesc',:blogDesc),('searchable',:searchable)"
+			);
+			$inserts->execute( $install );
+			// all is well, head to installation
+			redirect( 'install.php' );
+		} catch ( Exception $e ) {
+			dropAllTables();
+			$errors[] = $e->getMessage();
+		}
 	}
-	$install->password = '';
-
+	$install['password'] = '';
+	if( empty($install['userName']) )
+		$install['userName'] = $install['email'];
 } else {
-	$install = array_fill_keys( [ 'blogName', 'userName', 'password', 'email' ], null );	
-	$install = (object) array_map( 'htmlentities', $install );
+	$install = [
+		'userName' => 'admin',
+		'password' => 'admin',
+		'blogName' => 'MyBlog',
+		'blogEmail' => '',
+		'blogDesc' => 'Nice entertainment blog',
+		'searchable' => 'true',
+	];
 }
-$_page = new Page( 'Installation', '/user-cp/install.php?step=' . $step );
-$_page->setMetaItem( Page::META_CSS_FILE, 'css/compact.css' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
+
+$install = (object) array_map( 'escHtml', $install );
+$install->searchable = checked( $install->searchable === 'true' );
+
+$errors = implode( '<br>', $errors );
+
+$_page = new Page( 'Installation', USERPATH . '/install.php?step=' . $step );
+$_page->addPageMeta( Page::META_CSS_FILE, 'css/compact.css' );
 include( 'html-header.php' );
 ?>
-<div class="container">
+<div class="col-sm-6 offset-sm-3 col-xl-4 offset-xl-4 mb-3">
 	<div id="logo"><a href="http://techify.ng/">Sevida</a></div>
-	<div class="container-sm">
-<?php
-switch( $step ) {
-	case 1:
-?>
-		<div class="panel panel-primary">
-			<div class="panel-heading"><?=icon('cog')?> Information needed</div>
-			<div class="panel-body">
-				<form role="form" class="form" method="post" action="#">
-					<input type="hidden" name="action" value="3" />
-<?php
-	if( isset($errors[0]) ) {
-			$errors = implode( '<br>', $errors );
-			echo '<div class="alert alert-danger text-center">', $errors, '</div>';
-		} else {
-			echo '<p class="alert alert-info">Please provide the following information. Don&#8217;t worry, you can always change these settings later.</p>';
-		}
-		unset( $errors );
-?>
-					<div class="form-group form-group-lg">
-						<label class="control-label" for="blogName">Site Title</label>
-						<div class="input-group">
-							<?=icon('globe','','input-group-addon')?>
-							<input class="form-control" type="text" id="blogName" name="blogName" minlength="5" maxlength="15" value="<?=$install->blogName?>" required />
-						</div>
+	<div class="card bg-light text-dark">
+		<?php
+		switch( $step ) {
+			case 2:
+		?>
+		<h3 class="card-header">Success</h3>
+		
+		<?php
+				break;
+			default:
+		?>
+		<h3 class="card-header">Installation</h3>
+		<div class="card-body">
+			<form id="config" method="post" action="#" class="needs-validation" novalidate>
+				<input type="hidden" name="step" value="1" />
+				<?php
+				if( ! empty($errors) )
+					echo '<div class="alert alert-danger text-center">', $errors, '</div>';
+				unset($errors);
+				?>
+				<h4>Global Admin</h4>
+				<div class="mb-3">
+					<label class="form-label" for="userName">Username or Email</label>
+					<div class="input-group input-group-lg">
+						<div class="input-group-text"><?=icon('user-secret')?></div>
+						<input class="form-control<?=( in_array( 'userName', $causes ) ? ' is-invalid' : '' )?>" type="text" id="userName" name="userName" value="<?=$install->userName?>" required minlength="5" maxlength="15" />
 					</div>
-					<div class="form-group form-group-lg">
-						<label class="control-label" for="userName">Username</label>
-						<div class="input-group">
-							<?=icon('user','','input-group-addon')?>
-							<input class="form-control" type="text" id="userName" minlength="5" maxlength="15" name="userName" value="<?=$install->userName?>" required />
-						</div>
-						<p class="help-block">Usernames can have only alphanumeric characters, spaces, underscores, hyphens, periods, and the @ symbol.</p>
-					</div>
-					<div class="form-group form-group-lg">
-						<label class="control-label" for="email">Email</label>
-						<div class="input-group">
-							<?=icon('at','','input-group-addon')?>
-							<input class="form-control" type="email" id="email" minlength="10" maxlength="30" name="email" value="<?=$install->email?>" required />
-						</div>
-						<p class="help-block">Double-check your email address before continuing.</p>
-					</div>
-					<div class="form-group form-group-lg">
-						<label class="control-label" for="password">Password</label>
-						<div class="input-group">
-							<?=icon('lock','','input-group-addon')?>
-							<input class="form-control" type="password" id="password" minlength="8" maxlength="20" name="password" value="<?=$install->password?>" required />
-						</div>
-						<p class="help-block">You will need this password to log&nbsp;in. Please store it in a secure location.</p>
-					</div>
-					<div class="checkbox">
-						<label for="searchable"><input type="checkbox" id="searchable" name="searchable" /> Allow Search Engines to crawl my site</label>
-						<p class="help-block">It is up to search engines to honor this request.</p>
-					</div>
-					<input type="hidden" name="language" value="en_US" />
-					<button type="submit" name="submit" id="submit" class="btn btn-primary">Go Install</button>
-				</form>
-			</div>
-		</div>
-<?php
-	break;
-	case 2:
-?>
-		<div class="panel panel-success">
-			<div class="panel-heading">Installation Success</div>
-			<div class="panel-body">
-				<div class="form-group form-group-lg">
-					<label class="control-label">Username</label>
-					<p class="form-control-static"><?=$install->userName?></p>
-				</div><div class="form-group form-group-lg">
-					<label>Password</label>
-					<p class="form-control-static">Your choosen password.</p>
 				</div>
-				<p><a href="login.php" class="btn btn-success">Log In</a></p>
-			</div>
+				<div class="mb-3">
+					<label class="form-label" for="password">Password</label>
+					<div class="input-group input-group-lg">
+						<div class="input-group-text"><?=icon('lock')?></div>
+						<input class="form-control<?=( in_array( 'password', $causes ) ? ' is-invalid' : '' )?>" type="password" id="password" name="password" value="<?=$install->password?>" required minlength="8" maxlength="15" />
+					</div>
+				</div>
+				<h4>Blog Information</h4>
+				<div class="mb-3">
+					<label class="form-label" for="blogName">Blog Name</label>
+					<div class="input-group input-group-lg">
+						<div class="input-group-text"><?=icon('pen')?></div>
+						<input class="form-control<?=( in_array( 'blogName', $causes ) ? ' is-invalid' : '' )?>" type="text" id="blogName" name="blogName" value="<?=$install->blogName?>" required minlength="5" maxlength="15" />
+					</div>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="blogEmail">Blog Contact Email</label>
+					<div class="input-group input-group-lg">
+						<div class="input-group-text"><?=icon('at')?></div>
+						<input class="form-control<?=( in_array( 'blogEmail', $causes ) ? ' is-invalid' : '' )?>" type="email" id="blogEmail" name="blogEmail" value="<?=$install->blogEmail?>" required minlength="5" maxlength="25" />
+					</div>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="blogDesc">Blog Description</label>
+					<textarea class="form-control<?=( in_array( 'blogDesc', $causes ) ? ' is-invalid' : '' )?>" id="blogDesc" name="blogDesc" rows="3" maxlength="120"><?=$install->blogDesc?></textarea>
+					<div class="form-text">Describe your blog in 120 charachters</div>
+				</div>
+				<div class="mb-3 form-check">
+					<input id="searchable" class="form-check-input" type="checkbox" name="searchable" value="true"<?=$install->searchable?> />
+					<label for="searchable" class="form-check-label">Allow search engines to crawl this site</label>
+				</div>
+				<button name="submit" type="submit" class="btn btn-primary float-end">Submit</button>
+			</form>
 		</div>
-<?php
-	break;
-}
-?>
+		<?php
+			break;
+		}
+		?>
 	</div>
 </div>
 <?php

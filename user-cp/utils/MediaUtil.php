@@ -32,7 +32,7 @@ function fileShortName( string $fileName ) : string {
 function createGDImage( string $srcFile, string $format, &$gdImage ) : bool {
 	if( $format === 'png' )
 			$gdImage = imagecreatefrompng($srcFile);
-	else if( $format === 'jpg' )
+	elseif( $format === 'jpg' )
 		$gdImage = imagecreatefromjpeg($srcFile);
 	else
 		$gdImage = null;

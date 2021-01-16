@@ -21,7 +21,7 @@ class Post {
 	public $modified;
 	public $status;
 	public $password;
-	public $views;
+	public $viewCount;
 
 	public static function findId( string $value ) : int {
 		global $db;

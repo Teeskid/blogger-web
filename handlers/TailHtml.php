@@ -18,7 +18,7 @@ include( ABSPATH . BASE_UTIL . '/AsideHtml.php' )
 		<!--/grid-outer-->
 	</main>
 	<footer id="footer">
-		<p class="copyright"><?=htmlspecialchars('Copyright © ' . date('Y'))?> <a href="<?=BASEPATH?>/"><?=$_blogName?> <?=$cfg->about?></a></p>
+		<p class="copyright"><?=escHtml('Copyright © ' . date('Y'))?> <a href="<?=BASEPATH?>/"><?=$_blogName?> <?=$cfg->about?></a></p>
 		<ul class="link-menu">
 			<li><a href="<?=BASEPATH?>/privacy-policy/">Privacy Policy</a></li>
 			<li><a href="<?=BASEPATH?>/about-us/">About Us</a></li>
@@ -36,7 +36,7 @@ include( ABSPATH . BASE_UTIL . '/AsideHtml.php' )
 		<a href="<?=BASEPATH?>/privacy-policy/" class="btn">FIND OUT MORE</a>
 		<button type="button" class="btn close">ACCEPT</button>
 	</div>
-	<button type="button" class="close" aria-label="Close"><?=htmlspecialchars('×')?></button>
+	<button type="button" class="close" aria-label="Close"><?=escHtml('×')?></button>
 </div>
 <script src="<?=BASEPATH?>/js/jquery-3.5.1.min.js"></script>
 <script src="<?=BASEPATH?>/js/jquery.owlcarousel.min.js"></script>

@@ -11,8 +11,9 @@
 
 /**
  * Toggles rewriting unhandled URLs: Off means a 404 page always
- * 
- * @var bool SE_REWRITE
+ */
+ /**
+ * @var bool Controls url rewriting
  */
 define( 'SE_REWRITE', true );
 
@@ -21,4 +22,3 @@ require( dirname(__FILE__) . '/Load.php' );
 
 // URLs rewrite is handed downtown
 require( ABSPATH . '/Rewrite.php' );
-// PHP_EOL

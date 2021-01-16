@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $post = (int) trim($_REQUEST['id']);
 try

@@ -42,12 +42,12 @@ switch( $action->action ) {
 				$page->id = $action->id;
 				$insert = $db->prepare( 'UPDATE Post SET permalink=:permalink,title=:title,content=:content,status=:status,password=:password,modified=DEFAULT WHERE id=:id LIMIT 1' );
 				$insert->execute( get_object_vars($page) );
-			} else if( $action->action === 'create' ) {
+			} elseif( $action->action === 'create' ) {
 				if( $tempId )
 					throw new Exception('Duplicate title or permalink.');
 				$page->author = $_login->userId;
-				$page->subject = 'page';
-				$insert = $db->prepare( 'INSERT INTO Post (permalink,title,content,author,posted,modified,status,password,subject) VALUES (:permalink,:title,:content,:author,DEFAULT,DEFAULT,:status,:password,:subject)' );
+				$page->rowType = 'page';
+				$insert = $db->prepare( 'INSERT INTO Post (permalink,title,content,author,posted,modified,status,password,rowType) VALUES (:permalink,:title,:content,:author,DEFAULT,DEFAULT,:status,:password,:rowType)' );
 				$insert->execute( get_object_vars($page) );
 				$page->id = $db->lastInsertId();
 			}

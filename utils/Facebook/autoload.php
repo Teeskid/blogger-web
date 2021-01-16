@@ -8,7 +8,7 @@
  * Facebook.
  *
  * As with any software that integrates with the Facebook platform, your use
- * of this software is subject to the Facebook Developer Principles and
+ * of this software is rowType to the Facebook Developer Principles and
  * Policies [http://developers.facebook.com/policy/]. This copyright notice
  * shall be included in all copies or substantial portions of the software.
  *
@@ -42,7 +42,6 @@ require_once __DIR__ . '/polyfills.php';
  *
  * @param string $class The fully-qualified class name.
  *
- * @return void
  */
 spl_autoload_register(function ($class) {
     // project-specific namespace prefix

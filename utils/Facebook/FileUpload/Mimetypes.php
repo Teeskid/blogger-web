@@ -8,7 +8,7 @@
  * Facebook.
  *
  * As with any software that integrates with the Facebook platform, your use
- * of this software is subject to the Facebook Developer Principles and
+ * of this software is rowType to the Facebook Developer Principles and
  * Policies [http://developers.facebook.com/policy/]. This copyright notice
  * shall be included in all copies or substantial portions of the software.
  *
@@ -102,7 +102,7 @@ class Mimetypes
         'bmi' => 'application/vnd.bmi',
         'bmp' => 'image/bmp',
         'book' => 'application/vnd.framemaker',
-        'box' => 'application/vnd.previewsystems.box',
+        'box' => 'application/vnd.previewCountystems.box',
         'boz' => 'application/x-bzip2',
         'bpk' => 'application/octet-stream',
         'btif' => 'image/prs.btif',

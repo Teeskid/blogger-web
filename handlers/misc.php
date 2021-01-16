@@ -1,6 +1,6 @@
 <?php
-$_basePath = htmlspecialchars(BASEPATH);
-$_baseUrl = htmlspecialchars(BASE_URL) . $_basePath;
+$_basePath = escHtml(BASEPATH);
+$_baseUrl = escHtml(BASE_URL) . $_basePath;
 switch( $_VARS['file'] ) {
 	case 'rss.xml':
 		header( 'Content-Type: text/xml;charset=utf-8', true );
@@ -19,7 +19,7 @@ switch( $_VARS['file'] ) {
 		$urlset[] = [ 'loc' => '/search', 'priority' => 1, 'lastmod' => $lastMod ];
 		$urlset[] = [ 'loc' => '/bb-code', 'priority' => 1, 'lastmod' => $lastMod ];
 
-		$mQuery = $db->query( 'SELECT subject, title, permalink FROM Term ORDER BY subject ASC, id DESC' );
+		$mQuery = $db->query( 'SELECT rowType, title, permalink FROM Term ORDER BY rowType ASC, id DESC' );
 		$mQuery = $mQuery->fetchAll( PDO::FETCH_CLASS, 'Term' );
 		foreach( $mQuery as $entry ) {
 		  $urlset[] = [
@@ -45,8 +45,8 @@ switch( $_VARS['file'] ) {
 		echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
 		echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">' . PHP_EOL;
 		foreach( $urlset as $url ) {
-			$url['loc'] = htmlspecialchars( BASE_URL . BASEPATH . $url['loc'] . '/' );
-			$url['lastmod'] = htmlspecialchars( $url['lastmod'] );
+			$url['loc'] = escHtml( BASE_URL . BASEPATH . $url['loc'] . '/' );
+			$url['lastmod'] = escHtml( $url['lastmod'] );
 			echo "\t<url>\n";
 			foreach( $url as $k => $v )
 				echo "\t\t<$k>$v</$k>\n";

@@ -9,22 +9,22 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $action = request( 'action', 'redirect', 'id' );
 $action->redirect = $action->redirect ?? 'media.php';
 switch( $action->action ) {
 	case 'modify':
-		$media = $db->prepare( 'SELECT * FROM Post WHERE id=? AND subject=? LIMIT 1' );
+		$media = $db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
 		$media->execute( [ $action->id, 'media' ] );
 		if( 0 === $media->rowCount() )
 			redirect( BASEPATH . '/404.php' );
 		$media = $db->fetchClass( $media, 'Post' );
-		$_page = new Page( 'Edit Post', '/user-cp/media-edit.php?action=modify&id=' . $media->id );
+		$_page = new Page( 'Edit Post', USERPATH . '/media-edit.php?action=modify&id=' . $media->id );
 		break;
 	case 'create':
 		$media = new Media();
-		$_page = new Page( 'Create Post', '/user-cp/media-new.php' );
+		$_page = new Page( 'Create Post', USERPATH . '/media-new.php' );
 		break;
 	default:
 		die();
@@ -45,23 +45,23 @@ include( 'html-header.php' );
 	<li class="active"><?=$action->action?></li>
 </ol>
 <div class="container-sm">
-	<div class="panel panel-primary">
-		<div class="panel-heading">Enter new details</div>
-		<div class="panel-body">
-			<form role="form" id="mediaForm" action="#">
+	<div class="card bg-light text-dark">
+		<div class="card-header">Enter new details</div>
+		<div class="card-body">
+			<form id="mediaForm">
 				<input type="hidden" name="id" value="<?=$media->id?>" />
 				<input type="hidden" name="action" value="modify" />
-				<div class="form-group">
-					<label for="title" class="control-label">Media Title</label>
-					<input type="text" class="form-control" name="title" id="title" value="<?=$media->title ?>" minlen="10" pattern="[\w\d\s_]+" required />
-					<p class="help-block">Titles must be only letters, numbers and spaces</p>
+				<div class="mb-3">
+					<label for="title" class="form-label">Media Title</label>
+					<input type="text" class="form-control" name="title" id="title" value="<?=$media->title ?>" minlength="10" pattern="[\w\d\s_]+" required />
+					<div class="form-text">Titles must be only letters, numbers and spaces</div>
 				</div>
-				<div class="form-group" style="margin-bottom:5px">
-					<label for="permalink" class="control-label">Media Permalink</label>
+				<div class="mb-3" style="margin-bottom:5px">
+					<label for="permalink" class="form-label">Media Permalink</label>
 					<input type="text" class="form-control" name="permalink" id="permalink" value="<?=$media->permalink?>" pattern="[A-Za-z0-9-]+" disabled />
-					<p class="help-block">Small letters and hyphens only</p>
+					<div class="form-text">Small letters and hyphens only</div>
 				</div>
-				<div class="checkbox" style="margin-top:5px">
+				<div class="form-check" style="margin-top:5px">
 					<label><input type="checkbox" id="autoPermalink" checked /> Auto (using the above title)</label>
 				</div>
 				<p class="right-align">
@@ -74,8 +74,8 @@ include( 'html-header.php' );
 </div>
 <?php
 $action->redirect = json_encode($action->redirect);
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.async-form.js' );
-$_page->setMetaItem( Page::META_JS_CODE, <<<EOS
+$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
+$_page->addPageMeta( Page::META_JS_CODE, <<<EOS
 $(document).ready(function() {
 	var media = $("form#mediaForm");
 	media.find("input#title").change(function(event){

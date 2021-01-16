@@ -8,7 +8,7 @@
  * Facebook.
  *
  * As with any software that integrates with the Facebook platform, your use
- * of this software is subject to the Facebook Developer Principles and
+ * of this software is rowType to the Facebook Developer Principles and
  * Policies [http://developers.facebook.com/policy/]. This copyright notice
  * shall be included in all copies or substantial portions of the software.
  *
@@ -95,7 +95,7 @@ abstract class FacebookSignedRequestFromInputHelper
     {
         if ($this->signedRequest && $this->signedRequest->hasOAuthData()) {
             $code = $this->signedRequest->get('code');
-            $accessToken = $this->signedRequest->get('oauth_token');
+            $accessToken = $this->signedRequest->get('oAUTH_KEY');
 
             if ($code && !$accessToken) {
                 return $this->oAuth2Client->getAccessTokenFromCode($code);

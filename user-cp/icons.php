@@ -40,8 +40,8 @@ foreach( $iconPack as $entry ) {
 	$entry = 'fa-' . $entry;
 ?>
 		<div class="col-xs-4 col-sm-3 col-md-2">
-			<span class="fas fa-3x <?=htmlentities($entry)?>"></span>
-			<p><?=htmlspecialchars($entry)?></p>
+			<span class="fas fa-3x <?=escHtml($entry)?>"></span>
+			<p><?=escHtml($entry)?></p>
 		</div>
 <?php
 }

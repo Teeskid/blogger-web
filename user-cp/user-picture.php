@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 require( ABSPATH . USER_UTIL . '/media.php' );
 
 define('REQUEST_ID', (int) trim($_GET['id']));
@@ -63,10 +63,10 @@ $_page = new Page( 'Profile Picture', "/user-cp/user-cp-picture.php?id=$user->id
 include( 'html-header.php' );
 ?>
 <div class="card card-small">
-	<div class="card-content">
+	<div class="card-body">
 		<div class="card-title">Choose Picture</div>
 		<div class="alert alert-danger text-center"><?=$error;?></div>
-		<form id="post" class="form" role="form" action="<?=$_SERVER['REQUEST_URI'];?>" method="post" enctype="multipart/form-data">
+		<form id="post" class="form" action="<?=$_SERVER['REQUEST_URI'];?>" method="post" enctype="multipart/form-data">
 			<input type="hidden" name="id" value="<?=$user->id?>" />
 			<input type="hidden" name="_media_id" value="<?=$user->_media_id?>" />
 			<div class="card-panel"><img src="../storage/upload/<?=$user->_media_img?>" class="responsive-img" /></div>
@@ -79,7 +79,7 @@ include( 'html-header.php' );
 					<input class="file-path" type="text" placeholder="Upload Featured Image" />
 				</div>
 			</div>
-			<div class="form-group text-center">
+			<div class="mb-3 text-center">
 				<a href="user.php" class="btn-flat" role="button">Cancel</a>
 				<button type="submit" class="btn" name="submit">Update</button>
 			</div>

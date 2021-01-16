@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-define( 'MINI_LOAD', true );
+define( 'SE_NO_DB', true );
 require( dirname(__FILE__) . '/Load.php' );
 
 $theText = request( 'text' );

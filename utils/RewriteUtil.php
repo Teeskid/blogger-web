@@ -8,6 +8,8 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
+/**
+ */
 function rewriteConstants() {
 	define( 'EP_FILE', 1 );
 	define( 'EP_BLOG', 2 );
@@ -16,24 +18,24 @@ function rewriteConstants() {
 	define( 'EP_USER', 5 );
 	define( 'EP_MISC', 6 );
 }
-function loadRewriteRules() {
+function loadRules() {
 	global $rewrite;
-	$rewrite->addToRules( new RewriteRule( EP_MISC, '/(robots\.txt|sitemap\.xml)/?', ['file'] ) );
+	$rewrite->addToRules( new Rule( EP_MISC, '/(robots\.txt|sitemap\.xml)/?', ['file'] ) );
 
-	$rewrite->addToRules( new RewriteRule( EP_POST, '/([0-9]{4})/([0-9]{2})/([a-zA-Z0-9-]+)/?', [ 'year', 'month', 'name' ] ) );
-	$rewrite->addToRules( new RewriteRule( EP_POST, '/post/([a-zA-Z0-9-]+)/?', ['name'] ) );
-	$rewrite->addToRules( new RewriteRule( EP_POST, '/([a-zA-Z0-9-]+)/?', [ 'name' ] ) );
+	$rewrite->addToRules( new Rule( EP_POST, '/([0-9]{4})/([0-9]{2})/([a-zA-Z0-9-]+)/?', [ 'year', 'month', 'name' ] ) );
+	$rewrite->addToRules( new Rule( EP_POST, '/post/([a-zA-Z0-9-]+)/?', ['name'] ) );
+	$rewrite->addToRules( new Rule( EP_POST, '/([a-zA-Z0-9-]+)/?', [ 'name' ] ) );
 
-	$rewrite->addToRules( new RewriteRule( EP_USER, '/user/([a-zA-Z0-9-]+)/?', [ 'value' ] ) );
+	$rewrite->addToRules( new Rule( EP_USER, '/user/([a-zA-Z0-9-]+)/?', [ 'value' ] ) );
 	
-	$rewrite->addToRules( new RewriteRule( EP_FILE, '/[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}/[a-zA-Z0-9-]+/([a-zA-Z0-9-]+)/?', ['attachment'] ) );
-	$rewrite->addToRules( new RewriteRule( EP_FILE, '/[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}/[a-zA-Z0-9-]+/attachment/([a-zA-Z0-9-]+)/?', ['attachment'] ) );
-	$rewrite->addToRules( new RewriteRule( EP_FILE, '/.?.+?/attachment/([a-zA-Z0-9-]+)/?', ['attachment'] ) );
+	$rewrite->addToRules( new Rule( EP_FILE, '/[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}/[a-zA-Z0-9-]+/([a-zA-Z0-9-]+)/?', ['attachment'] ) );
+	$rewrite->addToRules( new Rule( EP_FILE, '/[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}/[a-zA-Z0-9-]+/attachment/([a-zA-Z0-9-]+)/?', ['attachment'] ) );
+	$rewrite->addToRules( new Rule( EP_FILE, '/.?.+?/attachment/([a-zA-Z0-9-]+)/?', ['attachment'] ) );
 
-	$rewrite->addToRules( new RewriteRule( EP_BLOG, '/(search|author|category|tag)/([a-zA-Z0-9-]+)/?', [ 'trend', 'value'] ) );
-	$rewrite->addToRules( new RewriteRule( EP_BLOG, '/([0-9]{4})/([0-9]{1,2})/?', [ 'trend=month', 'year', 'month' ] ) );
-	$rewrite->addToRules( new RewriteRule( EP_BLOG, '/([0-9]{4})/?', [ 'trend=year', 'value' ] ) );
-	$rewrite->addToRules( new RewriteRule( EP_BLOG, '(?:/|/index\.php)', [ 'trend=latest' ] ) );
+	$rewrite->addToRules( new Rule( EP_BLOG, '/(search|author|category|tag)/([a-zA-Z0-9-]+)/?', [ 'trend', 'value'] ) );
+	$rewrite->addToRules( new Rule( EP_BLOG, '/([0-9]{4})/([0-9]{1,2})/?', [ 'trend=month', 'year', 'month' ] ) );
+	$rewrite->addToRules( new Rule( EP_BLOG, '/([0-9]{4})/?', [ 'trend=year', 'value' ] ) );
+	$rewrite->addToRules( new Rule( EP_BLOG, '(?:/|/index\.php)', [ 'trend=latest' ] ) );
 }
 function requestRewrite( string $request, &$endPoint, &$query  ) : bool {
 	global $rewrite;

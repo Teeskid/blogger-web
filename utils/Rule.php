@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-class RewriteRule {
+class Rule {
 	public $regex;
 	public $vars;
 	public $endPoint;

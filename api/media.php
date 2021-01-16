@@ -21,7 +21,7 @@ $option->limit = $option->limit < 1 ? 1 : $option->limit;
 $option->page = (int) $option->page;
 $option->page = $option->page < 1 ? 1 : $option->page;
 
-$where = [ 'a.subject=?' ];
+$where = [ 'a.rowType=?' ];
 switch( $option->format ) {
 	case 'image':
 		$where[] = 'a.mimeType IN(' . $db->quoteList(['image/jpeg','image/png']) . ')';

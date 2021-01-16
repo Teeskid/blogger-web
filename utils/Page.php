@@ -45,7 +45,7 @@ class Page {
 		$this->path = BASEPATH . $path;
 		$this->setUrl( $this->path );
 	}
-	function setMetaItem( string $key, string ...$content ) {
+	function addPageMeta( string $key, string ...$content ) {
 		$meta = $this->meta[$key] ?? [];
 		$meta = array_merge( $meta, $content );
 		$this->meta[$key] = $meta;
@@ -56,7 +56,7 @@ class Page {
 	}
 	public static function findId( string $value ) : int {
 		global $db;
-		$id = $db->prepare( 'SELECT id FROM Post WHERE subject=? permalink=? LIMIT 1' );
+		$id = $db->prepare( 'SELECT id FROM Post WHERE rowType=? permalink=? LIMIT 1' );
 		$id->execute( [ 'page', $value ] );
 		$id = parseInt( $id->fetchColumn() );
 		return $id;

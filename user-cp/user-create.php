@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
 
@@ -80,9 +80,9 @@ META;
 include( 'html-header.php' );
 ?>
 <div class="card">
-	<div class="card-content">
+	<div class="card-body">
 		<blockquote class="alert"><?=$error?></blockquote>
-		<form id="post" class="form" role="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post">
+		<form id="post" class="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post">
 			<input type="hidden" name="id" value="<?=$user->id?>" />
 			<input type="hidden" name="role" value="1" />
 			<div class="input-field">

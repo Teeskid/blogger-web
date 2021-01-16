@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 /**
  * load the tab index from get-array
@@ -62,12 +62,10 @@ if(isset($_GET['admin-added'])){
 	alert();
 }
 ?>
-<nav>
-	<div class="nav-wrapper breadcrumb-wrapper">
-		<div class="col s12">
-			<a href="index.php" class="breadcrumb">Home</a>
-			<a href="#" class="breadcrumb active">Users</a>
-		</div>
+<nav aria-label="breadcrumb">
+	<div>
+		<a href="index.php" class="breadcrumb">Home</a>
+		<a href="#" class="breadcrumb active">Users</a>
 	</div>
 </nav>
 <div class="card">
@@ -88,7 +86,7 @@ foreach($tabs_data as $tab_index => $tab_data){
 ?>
 		</ul>
 	</div>
-	<div class="card-content">
+	<div class="card-body">
 		<span class="card-title">Users</span>
 		<?php
 if( $query->rowcount() ) {

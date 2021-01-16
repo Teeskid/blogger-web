@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-define( 'MINI_LOAD', false );
+define( 'SE_NO_DB', false );
 require( dirname(__DIR__) . '/Load.php' );
 
 $colorLight = '#f4af52';

@@ -1,13 +1,10 @@
 <?php
 /**
- * HTML pages related helper functions
- *
+ * Helper Functions For HTML
  * @package Sevida
- * @global $_page;
  */
 /**
  * Loads additional javascript files if any was set
- *
  * @global $_page
  */
 function doFootJsInc() {
@@ -15,12 +12,11 @@ function doFootJsInc() {
 	$option = $_page->getMetaItem(Page::META_JS_FILE);
 	if( isset($option[0]) )
 		foreach( $option as $entry )
-			echo '<script src="' . htmlentities($entry) . '"></script>';
+			echo '<script src="' . escHtml($entry) . '"></script>';
 	unset( $option, $entry );
 }
 /**
  * Outputs additional page javascript code if any has been set
- *
  * @global $_page
  */
 function doFootJsTag() {
@@ -33,7 +29,6 @@ function doFootJsTag() {
 }
 /**
  * Loads additional css stylesheet files if any has been set
- *
  * @global $_page
  */
 function doHeadCssInc() {
@@ -41,12 +36,11 @@ function doHeadCssInc() {
 	$option = $_page->getMetaItem(Page::META_CSS_FILE);
 	if( isset($option[0]) )
 		foreach( $option as $entry )
-			echo "\r\t" . '<link rel="stylesheet" href="' . htmlentities($entry) . '" />' . PHP_EOL;
+			echo "\r\t" . '<link rel="stylesheet" href="' . escHtml($entry) . '" />' . PHP_EOL;
 	unset( $option, $entry );
 }
 /**
  * Outputs additional page stylesheet code if any has been set
- *
  * @global $_page
  */
 function doHeadCssTag() {
@@ -54,12 +48,11 @@ function doHeadCssTag() {
 	$option = $_page->getMetaItem(Page::META_CSS_CODE);
 	if( isset($option[0]) )
 		foreach( $option as $entry )
-			echo '<style type="text/css">' . htmlspecialchars($entry) . '</style>' . PHP_EOL;
+			echo '<style type="text/css">' . escHtml($entry) . '</style>' . PHP_EOL;
 	unset( $option, $entry );
 }
 /**
  * Outputs additional page meta (head) tags if any has been set
- *
  * @global $_page
  */
 function doHeadMetaTag() {
@@ -71,9 +64,7 @@ function doHeadMetaTag() {
 	unset( $option, $entry );
 }
 /**
- * Outputs a navigation breadcrumb using an array of links and a final
- * text-only destination name
- *
+ * Outputs a navigation breadcrumb using an array of links and a final text-only destination name
  * @global $_page
  * @param array $theCrumb An array in a format [ [ 'Previous', '/page/to/previous'], 'Current' ]
  */
@@ -81,14 +72,13 @@ function htmBreadCrumb( array $theCrumb ) {
 	echo '<ul class="breadcrumb">';
 	foreach( $theCrumb as $entry )
 		if( is_array($entry) )
-			echo '<li><a href="', htmlentities($entry[0]), '">', htmlspecialchars($entry[1]), '</a></li>';
+			echo '<li><a href="', escHtml($entry[0]), '">', escHtml($entry[1]), '</a></li>';
 		else
-			echo '<li class="active">', htmlspecialchars($entry), '</li>';
+			echo '<li class="active">', escHtml($entry), '</li>';
 	echo '</ul>';
 }
 /**
  * Outputs a pagination list using a Paging object created, and a page URL
- *
  * @param Paging $paging
  * @param string $pgUrl The url of the page that is to be paginated
  */
@@ -117,6 +107,13 @@ function doHtmlPaging( Paging $paging, string $pgUrl ) {
 	}
 	echo '</ul></nav>';
 }
+/**
+ * Return a single class to validate user input
+ * @return string
+ */
+function feedBack( bool $feedBack ) {
+	return $feedBack ? ' is-valid' : ' is-invalid';
+}
 function checked( bool $check = true ) : string {
 	return $check ? 'checked' : '';
 }
@@ -140,17 +137,17 @@ function isMobileClient() : bool {
 function mediaIcon( string $mime ) : string {
 		 if( false !== strpos( $mime, 'image/' ) )
 		$icon = 'file-image-o';
-	else if( false !== strpos( $mime, 'audio/' ) )
+	elseif( false !== strpos( $mime, 'audio/' ) )
 		$icon = 'music';
-	else if( false !== strpos( $mime, 'video/' ) )
+	elseif( false !== strpos( $mime, 'video/' ) )
 		$icon = 'file-video-o';
-	else if( false !== strpos( $mime, '/zip' ) || false !== strpos( $mime, 'x-rar' ) )
+	elseif( false !== strpos( $mime, '/zip' ) || false !== strpos( $mime, 'x-rar' ) )
 		$icon = 'file-archive-o';
-	else if( false !== strpos( $mime, '/pdf' ) )
+	elseif( false !== strpos( $mime, '/pdf' ) )
 		$icon = 'file-pdf-o';
-	else if( false !== strpos( $mime, '/java-archive' ) || false !== strpos( $mime, 'x-rar' ) )
+	elseif( false !== strpos( $mime, '/java-archive' ) || false !== strpos( $mime, 'x-rar' ) )
 		$icon = 'android';
-	else if( preg_match('#^application/#i', $mime) )
+	elseif( preg_match('#^application/#i', $mime) )
 		$icon = 'media-default';
 	else
 		$icon = '';
@@ -160,7 +157,7 @@ function pageUrl( string $url, int $page ) : string {
 	$page = 'page=' . $page;
 	if( false !== strpos( $url, 'page=' ) )
 		$url = preg_replace( '#page=[0-9]+?#i', $page, $url, 1, $tmp );
-	else if( false !== strpos( $url, '?' ) )
+	elseif( false !== strpos( $url, '?' ) )
 		$url .= '&' . $page;
 	else
 		$url .= '?' . $page;

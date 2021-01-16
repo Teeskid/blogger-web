@@ -9,12 +9,12 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $action = request( 'action', 'id' );
 switch( $action->action ) {
 	case 'modify':
-		$page = $db->prepare( 'SELECT * FROM Post WHERE id=? AND subject=? LIMIT 1' );
+		$page = $db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
 		$page->execute( [ $action->id, 'page' ] );
 		if( 0 === $page->rowCount() )
 			redirect( BASEPATH . '/404.php' );
@@ -34,21 +34,21 @@ if( $page->id ) {
 } else {
 	$pageMeta = array_fill_keys( [ Page::META_HEAD_TAG, Page::META_CSS_CODE, Page::META_JS_CODE ], null );
 }
-$pageMeta = array_map( 'htmlspecialchars', $pageMeta );
+$pageMeta = array_map( 'escHtml', $pageMeta );
 
-$page->title = htmlentities( $page->title );
-$page->content = htmlspecialchars( $page->content );
-$page->status = htmlentities( $page->status );
-$page->password = htmlentities( $page->password );
+$page->title = escHtml( $page->title );
+$page->content = escHtml( $page->content );
+$page->status = escHtml( $page->status );
+$page->password = escHtml( $page->password );
 $pageLocked = checked( ! empty($page->password) );
 $pageStatus = checked( $page->status=== 'draft' );
 switch( $action->action ) {
 	case 'modify':
-		$_page = new Page( 'Edit Page', '/user-cp/page-edit.php?action=modify&id=' . $page->id );
+		$_page = new Page( 'Edit Page', USERPATH . '/page-edit.php?action=modify&id=' . $page->id );
 		break;
 	case 'create':
 	default:
-		$_page = new Page( 'Create Page', '/user-cp/page-edit.php?action=create' );
+		$_page = new Page( 'Create Page', USERPATH . '/page-edit.php?action=create' );
 		break;
 }
 include( 'html-header.php' );
@@ -58,61 +58,61 @@ include( 'html-header.php' );
 	<li><a href="page.php">Page</a></li>
 	<li class="active"><?=$action->action?></li>
 </ol>
-<form role="form" id="pageForm" action="#">
+<form id="pageForm">
 	<input type="hidden" name="id" value="<?=$page->id?>" />
 	<input type="hidden" name="action" value="<?=$action->action?>" />
 	<div class="row">
 		<div class="col-xs-12 col-sm-7">
-			<div class="form-group">
-				<label for="title" class="control-label">Page Title</label>
+			<div class="mb-3">
+				<label for="title" class="form-label">Page Title</label>
 				<input type="text" class="form-control" name="title" id="title" value="<?=$page->title ?>" />
 			</div>
-			<div class="form-group">
-				<label for="content" class="control-label">Page Content</label>
+			<div class="mb-3">
+				<label for="content" class="form-label">Page Content</label>
 				<textarea class="form-control" name="content" id="content" rows="20"><?=$page->content?></textarea>
 			</div>
 		</div>
 		<div class="col-xs-12 col-sm-5">
-			<div id="accordion" class="panel-group" role="tablist" aria-multiselectable="true">
-				<div class="panel panel-default">
-					<div id="headerA" class="panel-heading" role="tab">
-						<h4 class="panel-title">
-							<a href="#collapseA" role="button" data-toggle="collapse" data-parent="#accordion" aria-expanded="false" aria-controls="collapseA"><?=icon('code')?> Custom Head Tags</a>
+			<div id="accordion" class="accordion" role="tablist" aria-multiselectable="true">
+				<div class="accordion-item">
+					<div id="headerA" class="card-header" role="tab">
+						<h4 class="card-title">
+							<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordion" data-bs-target="#collapseA" aria-expanded="false" aria-controls="collapseA"><?=icon('code')?> Custom Head Tags</a>
 						</h4>
 					</div>
-					<div id="collapseA" class="collapse panel-collapse" role="tabpanel" aria-labelledby="headerA">
-						<div class="panel-body">
-							<div class="form-group">
+					<div id="collapseA" class="accordion-collapse collapse" role="tabpanel" aria-labelledby="headerA">
+						<div class="card-body">
+							<div class="mb-3">
 								<label for="headTag">Enter Code Below</label>
 								<textarea id="headTag" rows="5" class="form-control" name="meta[<?=Page::META_HEAD_TAG?>]"><?=$pageMeta[Page::META_HEAD_TAG]?></textarea>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div class="panel panel-default">
-					<div id="headingB" class="panel-heading" role="tab">
-						<h4 class="panel-title">
-							<a href="#collapseB" role="button" data-toggle="collapse" data-parent="#accordion" aria-expanded="false" aria-controls="collapseB"><?=icon('adjust')?> Custom CSS Style</a>
+				<div class="accordion-item">
+					<div id="headingB" class="card-header" role="tab">
+						<h4 class="card-title">
+							<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordion" data-bs-target="#collapseB" aria-expanded="false" aria-controls="collapseB"><?=icon('adjust')?> Custom CSS Style</a>
 						</h4>
 					</div>
-					<div id="collapseB" class="collapse panel-collapse" role="tabpanel" aria-labelledby="headingB">
-						<div class="panel-body">
-							<div class="form-group">
+					<div id="collapseB" class="accordion-collapse collapse" role="tabpanel" aria-labelledby="headingB">
+						<div class="card-body">
+							<div class="mb-3">
 								<label for="cssCode">Enter Code Below</label>
 								<textarea id="cssCode" rows="5" class="form-control" name="meta[<?=Page::META_CSS_CODE?>]"><?=$pageMeta[Page::META_CSS_CODE]?></textarea>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div class="panel panel-info">
-					<div id="headingC" class="panel-heading" role="tab">
-						<h4 class="panel-title">
-							<a href="#collapseC" role="button" data-toggle="collapse" data-parent="#accordion" aria-expanded="false" aria-controls="collapseC"><?=icon('code')?> Custom Javascript</a>
+				<div class="card panel-info">
+					<div id="headingC" class="card-header" role="tab">
+						<h4 class="card-title">
+							<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordion" data-bs-target="#collapseC" aria-expanded="false" aria-controls="collapseC"><?=icon('code')?> Custom Javascript</a>
 						</h4>
 					</div>
-					<div id="collapseC" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingC">
-						<div class="panel-body">
-							<div class="form-group">
+					<div id="collapseC" class="card-collapse collapse" role="tabpanel" aria-labelledby="headingC">
+						<div class="card-body">
+							<div class="mb-3">
 								<label for="jsCode">Enter Code Below</label>
 								<textarea id="jsCode" rows="5" class="form-control" name="meta[<?=Page::META_JS_CODE?>]"><?=$pageMeta[Page::META_JS_CODE]?></textarea>
 							</div>
@@ -120,19 +120,19 @@ include( 'html-header.php' );
 					</div>
 				</div>
 			</div>
-			<div class="panel panel-primary">
-				<div class="panel-heading"><?=icon('check')?> Publish</div>
-				<div class="panel-body">
-					<div class="form-group">
-						<div class="checkbox">
+			<div class="card bg-light text-dark">
+				<div class="card-header"><?=icon('check')?> Publish</div>
+				<div class="card-body">
+					<div class="mb-3">
+						<div class="form-check">
 							<label><input id="pageLock" type="checkbox"<?=$pageLocked?> /> Lock Page</span></label>
 						</div>
 					</div>
-					<div id="password_div" class="form-group hide">
-						<label for="password" class="control-label">Enter Password</label>
+					<div id="password_div" class="mb-3 hide">
+						<label for="password" class="form-label">Enter Password</label>
 						<input type="text" class="form-control" id="password" name="password" value="<?=$page->password?>" <?=($pageLocked?'':'disabled ')?>/>
 					</div>
-					<p class="checkbox">
+					<p class="form-check">
 						<label>
 							<input type="checkbox" id="status" name="status" value="draft" <?=$pageStatus?>/>
 							<span>Save in draft</span>
@@ -147,8 +147,8 @@ include( 'html-header.php' );
 	</div>
 </form>
 <?php
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.async-form.js' );
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 $(document).ready(function(){
 	$("form#pageForm").asyncForm({url: "../api/page-edit.php", target: "page.php?tab=all"});
 	$("input#pageLock").on("change", function(){

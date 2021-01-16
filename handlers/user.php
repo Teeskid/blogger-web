@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $user  = $db->prepare( 'SELECT * FROM Person WHERE userName=? LIMIT 1' );
 $user->execute( [ $_VARS['value'] ] );
@@ -25,7 +25,7 @@ htmBreadCrumb( [ [ BASEPATH . '/', 'Home' ], 'Profile' ] );
 ?>
 <div class="post">
 	<div class="post-head">
-		<h2><?=htmlspecialchars($user->fullName)?></h2>
+		<h2><?=escHtml($user->fullName)?></h2>
 	</div>
 	<div id="postBar" class="btn-group">
 <?php

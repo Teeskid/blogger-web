@@ -16,7 +16,7 @@ $rewrite = new Rewrite();
 $GLOBALS['rewrite'] = $rewrite;
 
 rewriteConstants();
-loadRewriteRules();
+loadRules();
 
 $requestUri = $_SERVER['REQUEST_URI'];
 if( requestRewrite( $requestUri, $ENDPOINT, $_VARS ) ) {

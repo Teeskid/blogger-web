@@ -9,10 +9,10 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $option = request( 'tab', 'sot' );
-$where = [ 'a.subject=\'page\'' ];
+$where = [ 'a.rowType=\'page\'' ];
 switch( $option->tab ) {
 	case 'public':
 		$where[] = 'a.status=\'public\'';
@@ -69,24 +69,24 @@ include( 'html-header.php' );
 </ol>
 <div class="row">
 	<div class="col-xs-12 col-sm-5 col-md-4">
-		<div class="panel panel-primary">
-			<div class="panel-heading">Screen Option</div>
+		<div class="card bg-light text-dark">
+			<div class="card-header">Screen Option</div>
 			<ul class="nav nav-tabs">
 <?php
 foreach( $tabsData as $index => $entry ) {
 ?>
 				<li role="presentation"<?=($option->tab===$index?' class="active"':'')?>>
-					<a role="tab" target="_self" href="?tab=<?=$index?>"><?=htmlspecialchars($entry)?></a>
+					<a role="tab" target="_self" href="?tab=<?=$index?>"><?=escHtml($entry)?></a>
 				</li>
 <?php
 }
 ?>
 			</ul>
-			<div class="panel-body">
-				<form role="form" action="<?=$_SERVER['REQUEST_URI']?>" method="get">
-					<div class="form-group">
-						<label for="select-sot" class="control-label">Sort By</label>
-						<select class="form-control" id="select-sot" name="sot">
+			<div class="card-body">
+				<form action="<?=$_SERVER['REQUEST_URI']?>" method="get">
+					<div class="mb-3">
+						<label for="select-sot" class="form-label">Sort By</label>
+						<select class="form-select" id="select-sot" name="sot">
 <?php
 foreach( $sortData as $index => $entry ) {
 ?>
@@ -97,7 +97,7 @@ foreach( $sortData as $index => $entry ) {
 						</select>
 					</div>
 					<input type="hidden" name="tab" value="<?=$option->tab?>" />
-					<p class="form-group">
+					<p class="mb-3">
 						<button type="submit" class="btn btn-primary">Apply Filter</button>
 					</p>
 				</form>
@@ -121,13 +121,13 @@ if( ! empty($pageList) ) {
 	foreach( $pageList as $index => &$entry ) {
 		$entry->id = (int) $entry->id;
 		$entry->domId = 'pp_' . $entry->id;
-		$entry->title = htmlspecialchars($entry->title);
-		$entry->excerpt = htmlspecialchars($entry->excerpt);
-		$entry->category = htmlspecialchars($entry->category);
-		$entry->permalink = htmlentities(Rewrite::pageUri( $entry ));
-		$entry->author = htmlspecialchars($entry->author);
+		$entry->title = escHtml($entry->title);
+		$entry->excerpt = escHtml($entry->excerpt);
+		$entry->category = escHtml($entry->category);
+		$entry->permalink = escHtml(Rewrite::pageUri( $entry ));
+		$entry->author = escHtml($entry->author);
 		$entry->posted = date_format( date_create($entry->posted), $cfg->blogDate );
-		$entry->posted = htmlspecialchars($entry->posted);
+		$entry->posted = escHtml($entry->posted);
 ?>
 			<tr data-id="<?=$entry->id?>">
 				<td><?=++$index?></td>
@@ -135,7 +135,7 @@ if( ! empty($pageList) ) {
 				</td>
 				<td class="text-center">
 					<div class="dropdown">
-						<button id="<?=$entry->domId?>" type="button" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" class="btn btn-primary btn-xs">ACTION <span class="caret"></span></button>
+						<button id="<?=$entry->domId?>" type="button" aria-haspopup="true" aria-expanded="false" data-bs-toggle="dropdown" class="btn btn-primary btn-xs">ACTION <span class="caret"></span></button>
 						<ul class="dropdown-menu" aria-labelledby="<?=$entry->domId?>">
 							<li><a href="#" data-action="modify">Edit</a></li>
 							<li><a href="#" data-action="unlink" class="text-danger">Delete</a></li>
@@ -163,8 +163,8 @@ doHtmlPaging( $paging, $_page->path )
 </div>
 <?php
 unset( $pageList, $entry );
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 $(document).on("ready", "table#pages", function(){
 	$("table#pages a[data-action]").actionBtn({
 		unlink: "../api/page-edit.php",

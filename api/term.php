@@ -1,25 +1,43 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Terms Fetcher
+ * 
+ * Fetches terms from the database and return a json response
+ * 
+ * Paging and sizing is supported
+ * 
+ * @package Sevida
+ * @subpackage Api
  */
+/** Load blog bootstrap file */
 require( dirname(__FILE__) . '/Load.php' );
 
-$option = request( 'id', 'subject' );
-if( ! ( $option->id || $option->subject ) )
+/** Collect response options */
+$option = request( 'id', 'rowType' );
+if( ! ( $option->id || $option->rowType ) )
 	die();
-if( $option->id ) {
-	$termList = $db->prepare( 'SELECT id, master, title, about, objects FROM Term WHERE id=? LIMIT 1' );
-	$termList->execute( [ $option->id ] );
-	$termList = $termList->fetch(PDO::FETCH_ASSOC);
-} else {
-	$termList = $db->prepare( 'SELECT id, master, title, subject FROM Term WHERE subject=? ORDER BY objects ASC, title ASC LIMIT 5' );
-	$termList->execute( [ $option->subject ] );
-	$termList = $termList->fetchAll();
-}
-jsonOutput( $termList );
+
+$response = new Response();
+
+// Where clause for our query
+$where = [ 'rowType=' . $db->quote( $option->rowType ) ];
+// Incase a single item is requested
+if( $option->id )
+	$where[] = 'id=' . $db->quote( $option->id );
+$where = implode( ' AND ', $where );
+
+// Sorting phrase
+$order = 'childCount ASC, title ASC';
+
+// Limit the query by the optiobs requested
+$limit = '0,5';
+
+/** Fetch the terms */
+$mTerms = $db->query( "SELECT id, master, title, about, childCount FROM Term WHERE $where ORDER BY $order LIMIT $limit" );
+
+$response->setMessage( $mTerms->fetchAll() );
+$response->determineSuccess();
+unset( $mTerms );
+
+/** Send back the response */
+jsonOutput( $response );

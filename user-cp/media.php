@@ -9,11 +9,11 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
-$option = request( 'tab', 'subject', 'sort' );
+$option = request( 'tab', 'rowType', 'sort' );
 
-$where = [ 'Post.subject=?' ];
+$where = [ 'Post.rowType=?' ];
 switch( $option->tab ){
 	case 'self':
 		$where[] = 'Post.author=' . $db->quote($_login->userId);
@@ -21,7 +21,7 @@ switch( $option->tab ){
 	default:
 		$option->tab = 'all';
 }
-switch( $option->subject ){
+switch( $option->rowType ){
 	case 'image':
 		$where[] = sprintf( 'Post.mimeType IN (%s)', $db->quoteList(FORMAT_IMAGE) );
 		break;
@@ -32,7 +32,7 @@ switch( $option->subject ){
 		$where[] = sprintf( 'Post.mimeType IN (%s)', $db->quoteList(FORMAT_VIDEO) );
 		break;
 	default:
-		$option->subject = 'all';
+		$option->rowType = 'all';
 		// $where[] = 'Post.mimeType != NULL';
 }
 switch( $option->sort ){
@@ -63,9 +63,9 @@ $mediaList = $db->prepare(
 $mediaList->execute( [ 'media_metadata', 'media' ] );
 $mediaList = $mediaList->fetchAll( PDO::FETCH_CLASS, 'Media' );
 
-$_page = sprintf( '/user-cp/media.php?tab=%s&type=%s&sort=%s', $option->tab, $option->subject, $option->sort );
+$_page = sprintf( '/user-cp/media.php?tab=%s&type=%s&sort=%s', $option->tab, $option->rowType, $option->sort );
 $_page = new Page( 'Media Library', $_page );
-$_page->setMetaItem( Page::META_CSS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_CSS_CODE, <<<'EOS'
 @media (max-width: 767px) {
 	td h4 {
 		font-weight:100;
@@ -89,25 +89,25 @@ include( 'html-header.php' );
 	<li class="active">Media</li>
 </ul>
 <h2>Media Library <a href="media-new.php" role="button" class="badge">Upload</a></h2>
-<div class="panel panel-primary">
-	<div class="panel-heading">Screen Option</div>
-	<div class="panel-body">
-		<form role="form" class="form-inline" action="<?=$_SERVER['REQUEST_URI']?>" method="get">
+<div class="card bg-light text-dark">
+	<div class="card-header">Screen Option</div>
+	<div class="card-body">
+		<form class="form-inline" action="<?=$_SERVER['REQUEST_URI']?>" method="get">
 			<input type="hidden" name="tab" value="<?=$option->tab?>" />
-			<div class="form-group">
-				<label for="select-format" class="control-label">Select Format</label>
+			<div class="mb-3">
+				<label for="select-format" class="form-label">Select Format</label>
 				<select id="select-format" name="type" class="form-control">
 <?php
 foreach( [ 'nameAsc' => 'Name Ascending', 'nameDesc' => 'Name Descending', 'dateAsc' => 'Date Ascending', 'dateDesc' => 'Date Descending' ] as $index => $entry ) {
 ?>
-					<option value="<?=$index?>"<?=($index==$option->subject?' selected':'')?>><?=$entry?></option>
+					<option value="<?=$index?>"<?=($index==$option->rowType?' selected':'')?>><?=$entry?></option>
 <?php
 }
 ?>
 				</select>
 			</div>
-			<div class="form-group">
-				<label for="select-sort" class="control-label">Sort By</label>
+			<div class="mb-3">
+				<label for="select-sort" class="form-label">Sort By</label>
 				<select id="select-sort" name="sort" class="form-control">
 <?php
 foreach( [ 'nameAsc' => 'Name Ascending', 'nameDesc' => 'Name Descending', 'dateAsc' => 'Date Ascending', 'dateDesc' => 'Date Descending' ] as $index => $entry ) {
@@ -118,14 +118,14 @@ foreach( [ 'nameAsc' => 'Name Ascending', 'nameDesc' => 'Name Descending', 'date
 ?>
 				</select>
 			</div>
-			<div class="form-group">
+			<div class="mb-3">
 				<button type="submit" class="btn btn-primary">Apply Filter</button>
 			</div>
 		</form>
 	</div>
 </div>
-<div class="panel panel-info">
-	<div class="panel-heading">Uploaded Files</div>
+<div class="card panel-info">
+	<div class="card-header">Uploaded Files</div>
 	<ul class="nav nav-tabs">
 <?php
 foreach( [ 'all' => 'All', 'self' => 'By You' ] as $index => $entry ) {
@@ -151,19 +151,19 @@ if( ! isset($mediaList[0]) ) {
 }
 foreach( $mediaList as $index => &$entry ) {
 	$metaValue = json_decode( $entry->metaValue );
-	$metaValue->fileSize = htmlspecialchars( Media::formatSize( $metaValue->fileSize ?? 0 ) );
-	$entry->uploaded = htmlspecialchars($entry->uploaded);
-	$entry->uploader = htmlspecialchars($entry->uploader);
-	$entry->title = htmlspecialchars($entry->title);
+	$metaValue->fileSize = escHtml( Media::formatSize( $metaValue->fileSize ?? 0 ) );
+	$entry->uploaded = escHtml($entry->uploaded);
+	$entry->uploader = escHtml($entry->uploader);
+	$entry->title = escHtml($entry->title);
 	$entry->domId = 'Bt_' . $entry->id;
-	$entry->id = htmlentities($entry->id);
+	$entry->id = escHtml($entry->id);
 ?>
 		<tr data-id="<?=$entry->id?>">
 			<td class="text-center"><?=++$index?></td>
 			<td><?=$entry->title?></td>
 			<td class="text-center">
 				<div class="dropdown">
-					<button id="<?=$entry->domId?>" type="button" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown" class="btn btn-primary btn-xs">ACTION <span class="caret"></span></button>
+					<button id="<?=$entry->domId?>" type="button" aria-haspopup="true" aria-expanded="false" data-bs-toggle="dropdown" class="btn btn-primary btn-xs">ACTION <span class="caret"></span></button>
 					<ul class="dropdown-menu" aria-labelledby="<?=$entry->domId?>">
 						<li><a href="#" data-action="modify">Edit</a></li>
 						<li><a href="#" data-action="unlink" class="text-danger">Delete</a></li>
@@ -178,7 +178,7 @@ foreach( $mediaList as $index => &$entry ) {
 }
 ?>
 	</table>
-	<div class="panel-footer">
+	<div class="card-footer">
 		<a href="#" id="select-all">Select All - </a>
 		<span> With Selected: </span>
 		<button type="submit" name="action" value="unlink" class="btn-small">Delete</button>
@@ -188,8 +188,8 @@ doHtmlPaging( $paging, $_page->path )
 	</div>
 </div>
 <?php
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 	$(document).ready(function(){
 		$("table#medialist a[data-action]").actionBtn({
 			unlink: "../api/media-edit.php",

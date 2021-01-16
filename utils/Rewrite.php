@@ -10,7 +10,7 @@
  */
 class Rewrite {
 	const PAGE_SYNTAX = '/%permalink%/';
-	const TERM_SYNTAX = '/%subject%/%permalink%/';
+	const TERM_SYNTAX = '/%rowType%/%permalink%/';
 	const USER_SYNTAX = '/user/%permalink%/';
 	const POST_SYNTAX = [
 		'/%year%/%month%/%permalink%/',
@@ -57,7 +57,7 @@ class Rewrite {
 	function __construct() {
 		$this->rules = [];
 	}
-	public function addToRules( RewriteRule $rule ) {
+	public function addToRules( Rule $rule ) {
 		array_push( $this->rules, $rule );
 	}
 	public static function pageUri( Page $page ) : string {
@@ -83,7 +83,7 @@ class Rewrite {
 	public static function termUri( Term $term ) : string {
 		$permalink = BASEPATH . SELF::TERM_SYNTAX;
 		$permalink = str_replace( '%permalink%', $term->permalink, $permalink );
-		$permalink = str_replace( '%subject%', $term->subject == 'cat' ? 'category' : 'tag', $permalink );
+		$permalink = str_replace( '%rowType%', $term->rowType == 'cat' ? 'category' : 'tag', $permalink );
 		return $permalink;
 	}
 }

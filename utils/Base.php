@@ -1,5 +1,7 @@
 <?php
 /**
+ * Base and Basic Functions
+ * 
  * Base generic utilities, PHP5 compatible functions
  *
  * @package Sevida
@@ -8,7 +10,6 @@
 
 /**
  * Return the current server protocol
- * 
  * @return string
  */
 function getProtocol() {
@@ -19,7 +20,6 @@ function getProtocol() {
 }
 /**
  * Detects if we are browsing by https (secured)
- * 
  * @return bool
  */
 function isHttps() {
@@ -31,7 +31,6 @@ function isHttps() {
 }
 /**
  * Replaces trailing slashes with forward slashes in $str
- * 
  * @param string $str
  * @return string
  */
@@ -40,7 +39,6 @@ function strNoBs( $str ) {
 }
 /**
  * Guess the base / root path of the blog
- *
  * @return string
  */
 function getBasePath() {
@@ -60,7 +58,6 @@ function getBasePath() {
 }
 /**
  * Guess the base url without any path segment attached
- *
  * @return string
  */
 function getBaseUrl() {
@@ -69,26 +66,22 @@ function getBaseUrl() {
 }
 /**
  * Sends a json header in ready to outputing a json data
- * @return void
  */
 function jsonHeader() {
 	header( 'Content-Type: application/json', true );
 }
 /**
  * Prints out a json-serialized version of an array
- * 
  * @param array $json The array to be printed out
- * @return void
  */
-function jsonOutput( array $json ) {
+function jsonOutput( $response ) {
 	jsonHeader();
-	@ob_end_clean();
-	die( json_encode($json) );
+	@ob_clean();
+	echo json_encode($response);
+	exit;
 }
 /**
  * Tells the client not to cache the response we are sending
- *  
- * @return void
  */
 function noCacheHeaders() {
 	$headers = [
@@ -109,8 +102,7 @@ function noCacheHeaders() {
 }
 /**
  * Sends a 500 status code: Meaning there is an internal sever error, returns a message for
- * use with showError @see showError
- * 
+ * use with showError
  * @return string
  */
 function internalServerError() {
@@ -120,17 +112,13 @@ function internalServerError() {
 }
 /**
  * Sends a 404 response status: Meaning the requested object was not found on server
- * 
- * @return void
  */
 function objectNotFound() {
 	header( getProtocol() . '404 Page Not Found', true, 404 );
 }
 /**
  * Redirects to a target url, without caching
- * 
  * @param string $targetUrl The url to reditect to
- * @return void
  * @exits Halters the script execution
  */
 function redirect( $targetUrl ) {
@@ -140,9 +128,7 @@ function redirect( $targetUrl ) {
 }
 /**
  * Start the global blog timer
- * 
  * @global $_TIME_BEG, $_TIME_END
- * @return void
  */
 function startTimer() {
 	global $_TIME_BEG;
@@ -150,9 +136,7 @@ function startTimer() {
 }
 /**
  * Stop the global blog timer
- * 
  * @global $_TIME_BEG, $_TIME_END, $_TIME_ELP
- * @return void
  */
 function stopTimer() {
 	global $_TIME_BEG, $_TIME_END, $_TIME_ELP;
@@ -161,10 +145,8 @@ function stopTimer() {
 }
 /**
  * Pretty print error messages with an appropriate response status header
- * 
  * @param string $title An Optional error page title. An empty title defaults 'Unknown Error'
  * @param mixed|array|object $message The error page body html or plain text
- * @return void
  */
 function showError( $title, $message = false ) {
 	if( ! $message ) {

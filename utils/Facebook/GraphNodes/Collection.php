@@ -8,7 +8,7 @@
  * Facebook.
  *
  * As with any software that integrates with the Facebook platform, your use
- * of this software is subject to the Facebook Developer Principles and
+ * of this software is rowType to the Facebook Developer Principles and
  * Policies [http://developers.facebook.com/policy/]. This copyright notice
  * shall be included in all copies or substantial portions of the software.
  *
@@ -207,8 +207,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate
      * @param mixed $key
      * @param mixed $value
      *
-     * @return void
-     */
+         */
     public function offsetSet($key, $value)
     {
         if (is_null($key)) {
@@ -223,8 +222,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate
      *
      * @param string $key
      *
-     * @return void
-     */
+         */
     public function offsetUnset($key)
     {
         unset($this->items[$key]);

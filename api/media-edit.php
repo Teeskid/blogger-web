@@ -80,7 +80,7 @@ switch( $action->action ) {
 			$tempId = Media::findId( $media->permalink );
 			if( $tempId && $tempId !== $action->id )
 				throw new Exception( 'Duplicate permalink' );
-			$insert = $db->prepare( 'UPDATE Post SET permalink=?,title=?,modified=DATE(?) WHERE subject=? AND id=? LIMIT 1' );
+			$insert = $db->prepare( 'UPDATE Post SET permalink=?,title=?,modified=DATE(?) WHERE rowType=? AND id=? LIMIT 1' );
 			$insert->execute( [ $media->permalink, $media->title, time(), 'media', $action->id ] );
 			$db->commit();
 		} catch(Exception $e) {
@@ -215,7 +215,7 @@ switch( $action->action ) {
 					$db->beginTransaction();
 					if( false && Post::findId( $mUpload->permalink ) )
 						throw new Exception( '"%1s" already exists' );
-					$insert = $db->prepare( 'REPLACE INTO Post (author, title, permalink, mimeType, posted, modified, subject, status) VALUES (?,?,?,?,DATE(?),DATE(?),?,?)' );
+					$insert = $db->prepare( 'REPLACE INTO Post (author, title, permalink, mimeType, posted, modified, rowType, status) VALUES (?,?,?,?,DATE(?),DATE(?),?,?)' );
 					$insert->execute( [ $_login->userId, $mUpload->title, $mUpload->permalink, $mUpload->mimeType, $mUpload->uploaded, $mUpload->modified, 'media', 'public' ] );
 					$mUpload->id = parseInt( $db->lastInsertId() );
 					

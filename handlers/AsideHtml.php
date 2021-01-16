@@ -26,7 +26,7 @@ if( ! LOGGED_IN && ! SE_DEBUG ) {?>
 ?>
 	<div id="subscribe" class="card">
 		<div class="img"><?=icon('envelope fa-4x')?></div>
-		<form action="#" method="post" onsubmit="return false">
+		<form method="post" onsubmit="return false">
 			<h6>Subscribe To Our News Letter</h6>
 			<input id="subs-email" type="email" />
 			<button class="btn" type="submit">Subscribe</button>
@@ -46,14 +46,14 @@ EOS;
 	foreach( $_populars as $entry ) {
 		$entry->thumbnail = json_decode($entry->thumbnail);
 		$entry->thumbnail = Media::getImage( $entry->thumbnail, 'small' );
-		$entry->thumbnail = htmlentities($entry->thumbnail);
-		$entry->excerpt = htmlspecialchars($entry->excerpt);
+		$entry->thumbnail = escHtml($entry->thumbnail);
+		$entry->excerpt = escHtml($entry->excerpt);
 		$entry->posted = parseDate( $entry->posted );
 		$entry->permalink = Rewrite::postUri( $entry );
 ?>
 		<article>	
-			<div class="feed-image"><img alt="<?=htmlentities($entry->title)?>" src="<?=$entry->thumbnail?>" /></div>
-			<h3><a href="<?=$entry->permalink?>"><?=htmlspecialchars($entry->title)?></a></h3>
+			<div class="feed-image"><img alt="<?=escHtml($entry->title)?>" src="<?=$entry->thumbnail?>" /></div>
+			<h3><a href="<?=$entry->permalink?>"><?=escHtml($entry->title)?></a></h3>
 			<p><span class="excerpt"><?=$entry->excerpt?>...</span></p>
 		</article>
 <?php
@@ -71,8 +71,8 @@ foreach( $_archives as $entry ) {
 	$entry = explode( "|", $entry );
 	$index = sprintf( '%s/%s/%s/', BASEPATH, $entry[0], $entry[2] );
 	$entry = sprintf( '%s %s', $entry[1], $entry[0] );
-	$entry = htmlspecialchars($entry);
-	$index = htmlentities($index);
+	$entry = escHtml($entry);
+	$index = escHtml($index);
 ?>
 			<option value="<?=$index?>"><?=$entry?></option>
 <?php
@@ -105,10 +105,10 @@ if( isset($_pages[0]) ) {
 if( isset($_postTags[0]) ) {
 	echo '<ul id="labels" class="card">';
 	foreach( $_postTags as $entry ) {
-		$entry->title = htmlspecialchars($entry->title);
-		$entry->subject = 'tag';
+		$entry->title = escHtml($entry->title);
+		$entry->rowType = 'tag';
 		$entry->permalink = Rewrite::termUri( $entry );
-		$entry->permalink = htmlentities($entry->permalink);
+		$entry->permalink = escHtml($entry->permalink);
 ?>
 		<li><a href="<?=$entry->permalink?>"><?=$entry->title?></a></li>
 <?php

@@ -11,7 +11,7 @@
 require( dirname(__FILE__) . '/Load.php' );
 
 require( ABSPATH . BASE_UTIL . '/lib-apkparser.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 require( ABSPATH . USER_UTIL . '/media.php' );
 
 noCacheHeaders();
@@ -24,7 +24,7 @@ else {
 	$files = [];
 }
 $error = implode( '<br>', $error );
-$_page = new Page( 'Upload Media', '/user-cp/media-upLoad.php' );
+$_page = new Page( 'Upload Media', USERPATH . '/media-upLoad.php' );
 include( 'html-header.php' );
 ?>
 <ul class="breadcrumb">
@@ -33,24 +33,24 @@ include( 'html-header.php' );
 	<li class="active">Upload</li>
 </ul>
 <h2>Upload</h2>
-<div class="panel panel-primary">
-	<div class="panel-heading">Select File(s)</div>
+<div class="card bg-light text-dark">
+	<div class="card-header">Select File(s)</div>
 	<ul class="nav nav-tabs">
-		<li role="presentation" class="active"><a role="tab" data-toggle="tab" aria-controls="classic" href="#classic">Single</a></li>
-		<li role="presentation"><a role="tab" data-toggle="tab" aria-controls="ajaxon" href="#ajaxon">Multiple</a></li>
+		<li role="presentation" class="active"><a role="tab" data-bs-toggle="tab" aria-controls="classic" href="#classic">Single</a></li>
+		<li role="presentation"><a role="tab" data-bs-toggle="tab" aria-controls="ajaxon" href="#ajaxon">Multiple</a></li>
 	</ul>
-	<div class="panel-body">
+	<div class="card-body">
 <?php
 eAlert( $error, 'error' )
 ?>
 		<div class="tab-content" style="max-width:450px;margin:0 auto">
 			<div id="classic" role="tabpanel" class="tab-pane active">
-				<form name="media" role="form" class="form" action="#" method="post" enctype="multipart/form-data">
-					<div class="form-group">
-						<label for="files" class="control-label">Browse</label>
+				<form name="media" class="form" method="post" enctype="multipart/form-data">
+					<div class="mb-3">
+						<label for="files" class="form-label">Browse</label>
 						<input id="files" class="form-control" type="file" name="files" />
 					</div>
-					<div class="form-group">
+					<div class="mb-3">
 						<button class="btn btn-primary btn-block" type="submit" name="submit">Upload</button>
 					</div>
 					<p class="alert alert-info">
@@ -64,9 +64,9 @@ eAlert( $error, 'error' )
 					<div id="progress" class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
 				</div>
 				<p id="message" class="alert hidden"></p>
-				<div class="form-group text-center">
+				<div class="mb-3 text-center">
 					<input type="file" class="hidden" id="media-ajax" name="files" accept="*/*" multiple="multiple" />
-					<div class="form-group">
+					<div class="mb-3">
 						<button id="select-files" type="button" class="btn btn-primary btn-lg">Choose...</button/>
 					</div>
 				</div>
@@ -80,7 +80,7 @@ eAlert( $error, 'error' )
 </div>
 <p class="text-info">Maximum upload file size: 100 MB.</p><br><br><br>
 <?php
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 var progress, message;
 $(document).ready(function(){
 	progress = $("#progress"),

@@ -19,11 +19,11 @@ function termExists( int $id ) : bool {
 }
 function updateTermCount() {
 	global $db;
-	$my_query = $db->prepare( 'SELECT id,name,permalink FROM Term WHERE id IN (SELECT termId FROM TermInfo WHERE subject=?) ORDER BY id ASC' );
-	$my_query->execute( [ $subject ] );
+	$my_query = $db->prepare( 'SELECT id,name,permalink FROM Term WHERE id IN (SELECT termId FROM TermInfo WHERE rowType=?) ORDER BY id ASC' );
+	$my_query->execute( [ $rowType ] );
 	$my_query = $my_query->fetchAll();
 
-	if( $subject === 'cat' ) {
+	if( $rowType === 'cat' ) {
 		foreach( $my_query AS &$term ) {
 			$term_count = $db->quote( $term->id );
 			$term_count = $db->query( 'SELECT COUNT(*) FROM %s WHERE category=%s LIMiT 1', posts, $term_count );
@@ -32,7 +32,7 @@ function updateTermCount() {
 			$term_count = $db->prepare( 'UPDATE TermInfo SET count=? WHERE termId=?' );
 			$term_count->execute( [ $term->count, $term->id ] );
 		}	
-	} else if($subject === 'tag') {
+	} elseif($rowType === 'tag') {
 		foreach( $my_query AS &$term ) {
 			$term_count = $db->quote( $term->id );
 			$term_count = $db->query( 'SELECT COUNT(*) FROM %s WHERE folderInfoId=(SELECT id FROM %s WHERE termId=%s LIMiT 1)', $db->term_relationships, TermInfo, $term_count );

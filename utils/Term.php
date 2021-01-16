@@ -13,8 +13,8 @@ class Term {
 	public $master;
 	public $title;
 	public $permalink;
-	public $subject;
-	public $objects;
+	public $rowType;
+	public $childCount;
 
 	function __construct( string $title = null, string $permalink = null ) {
 		if( $title )
@@ -22,10 +22,10 @@ class Term {
 		if( $permalink )
 			$this->permalink = $permalink;
 	}
-	public static function getList( string $subject, $notId = false ) : array {
+	public static function getList( string $rowType, $notId = false ) : array {
 		global $db;
-		$mQuery = $db->prepare( 'SELECT id, master, title FROM Term WHERE subject=? AND id != ? ORDER BY IF(id=1, 100, title)' );
-		$mQuery->execute( [ $subject, $notId ] );
+		$mQuery = $db->prepare( 'SELECT id, master, title FROM Term WHERE rowType=? AND id != ? ORDER BY IF(id=1, 100, title)' );
+		$mQuery->execute( [ $rowType, $notId ] );
 		$mQuery = $mQuery->fetchAll();
 		return $mQuery;
 	}

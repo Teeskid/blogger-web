@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $page  = $db->prepare( 'SELECT * FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
 $page->execute( $theValue );
@@ -21,13 +21,13 @@ $theCrumb[] = $page->title;
 // parseBBCode( $entry->content );
 
 $_page = new Page( $page->title, $page->permalink );
-$_page->setMetaItem( Page::META_CSS_LOAD, 'post' );
+$_page->addPageMeta( Page::META_CSS_LOAD, 'post' );
 include( ABSPATH . BASE_UTIL . '/HeadHtml.php' );
 htmBreadCrumb( $theCrumb );
 ?>
 <div class="post">
 	<div class="post-head">
-		<h2><?=htmlspecialchars($page->title)?></h2>
+		<h2><?=escHtml($page->title)?></h2>
 	</div>
 	<div id="postBar" class="btn-group">
 <?php

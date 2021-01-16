@@ -1,18 +1,20 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Terms Management Page
+ * 
+ * Tools for managing terms : categories and tags, add delete and edit
+ * also lists all terms available in database
+ * 
+ * @package Sevida
+ * @subpackage Administration 
  */
+/** Load blog boostrap files */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
-$option = request( 'subject', 'sort' );
-switch( $option->subject ) {
+/** Collect our screen options */
+$option = request( 'rowType', 'sort' );
+switch( $option->rowType ) {
 	case 'cat':
 		$termName = 'Category';
 		$termIcon = 'folder-open';
@@ -26,18 +28,18 @@ switch( $option->subject ) {
 	default:
 		redirect( BASEPATH . '/404.php' );
 }
-$_page = new Page( $termName, '/user-cp/term.php?subject=' . $option->subject );
+$_page = new Page( $termName, USERPATH . '/term.php?rowType=' . $option->rowType );
 
-$paging = $db->prepare( 'SELECT COUNT(*) FROM Term WHERE subject=?' );
-$paging->execute( [ $option->subject ] );
+$paging = $db->prepare( 'SELECT COUNT(*) FROM Term WHERE rowType=?' );
+$paging->execute( [ $option->rowType ] );
 $paging = parseInt( $paging->fetchColumn() );
 $paging = new Paging( 10, $paging );
 
 $termList = $db->prepare(
-	'SELECT a.id, IFNULL(b.title, ?) AS parentName, a.title, a.permalink, a.subject, a.about, a.objects FROM Term a ' .
-	'LEFT JOIN Term b ON b.id=a.master WHERE a.subject=? ORDER BY IF(a.id=1, 555, IFNULL(a.master, a.id)) DESC, b.title ASC LIMIT ' . $paging->getLimit()
+	'SELECT a.id, IFNULL(b.title, ?) AS parentName, a.title, a.permalink, a.rowType, a.about, a.childCount FROM Term a ' .
+	'LEFT JOIN Term b ON b.id=a.master WHERE a.rowType=? ORDER BY IF(a.id=1, 555, IFNULL(a.master, a.id)) DESC, b.title ASC LIMIT ' . $paging->getLimit()
 );
-$termList->execute( [ 'None', $option->subject ] );
+$termList->execute( [ 'None', $option->rowType ] );
 $termList = $termList->fetchAll( PDO::FETCH_CLASS, 'Term' );
 $termList = array_values($termList);
 
@@ -52,32 +54,32 @@ include( 'html-header.php' );
 </div>
 <div class="row">
 	<div class="col-xs-12 col-sm-5 col-md-4">
-		<form role="form" id="term" action="#">
-			<div class="panel panel-primary">
-				<div class="panel-heading">Create New</div>
-				<div class="panel-body">
+		<form id="term">
+			<div class="card bg-light text-dark">
+				<div class="card-header">Create New</div>
+				<div class="card-body">
 					<input type="hidden" id="action" name="action" value="create" />
 					<input type="hidden" id="id" name="id" value="" />
-					<input type="hidden" id="subject" name="subject" value="<?=htmlentities($option->subject)?>" />
-					<div class="form-group">
-						<label for="title" class="control-label">Name</label>
+					<input type="hidden" id="rowType" name="rowType" value="<?=escHtml($option->rowType)?>" />
+					<div class="mb-3">
+						<label for="title" class="form-label">Name</label>
 						<input id="title" class="form-control" type="text" name="title" />
 						<span class="help-block">The name is how it appears on your site.</span>
 					</div>
 <?php
-if( $option->subject === 'cat' ) {
+if( $option->rowType === 'cat' ) {
 ?>
-					<div class="form-group">
-						<label for="master" class="control-label">Parent Category</label>
-						<select class="form-control" id="master" name="master">
+					<div class="mb-3">
+						<label for="master" class="form-label">Parent Category</label>
+						<select class="form-select" id="master" name="master">
 							<option value="" selected>Standalone</option>
 <?php
 	foreach( $catsList as $entry ) {
 		$entry->id = (int) $entry->id;
 		if( $entry->id === 1 || $entry->master )
 			continue;
-		$entry->title = htmlentities($entry->title);
-		$entry->id = htmlentities($entry->id);
+		$entry->title = escHtml($entry->title);
+		$entry->id = escHtml($entry->id);
 ?>
 							<option value="<?=$entry->id?>"><?=$entry->title?></option>
 <?php
@@ -87,8 +89,8 @@ if( $option->subject === 'cat' ) {
 						</select>
 						<span class="help-block">Hierachical parent.</span>
 					</div>
-					<div class="form-group">
-						<label for="about" class="control-label">Description</label>
+					<div class="mb-3">
+						<label for="about" class="form-label">Description</label>
 						<textarea class="form-control" id="about" name="about" class="materialize-textarea"></textarea>
 						<span class="help-block">The about is not prominent by default; however</span>
 					</div>
@@ -100,7 +102,7 @@ if( $option->subject === 'cat' ) {
 <?php
 }
 ?>
-					<div class="form-group">
+					<div class="mb-3">
 						<button id="submit" type="submit" name="submit" class="btn btn-primary">Create</button>
 						<button id="cancel" type="reset" class="btn btn-default hide">Cancel</button>
 					</div>
@@ -118,7 +120,7 @@ if( isset($termList[0]) ) {
 				<th>Name</th>
 				<th class="text-center" width="70"></th>
 <?php
-	if( $option->subject === 'cat' )
+	if( $option->rowType === 'cat' )
 		echo '<th>Parent</th>';
 ?>
 				<th>Description</th>
@@ -127,10 +129,10 @@ if( isset($termList[0]) ) {
 <?php
 	foreach( $termList as $index => $entry ) {
 		$entry->permalink = Rewrite::termUri( $entry );
-		$entry->permalink = htmlentities($entry->permalink);
-		$entry->parentName = htmlspecialchars($entry->parentName);
-		$entry->title = htmlspecialchars($entry->title);
-		$entry->about = htmlspecialchars($entry->about);
+		$entry->permalink = escHtml($entry->permalink);
+		$entry->parentName = escHtml($entry->parentName);
+		$entry->title = escHtml($entry->title);
+		$entry->about = escHtml($entry->about);
 		$entry->domId = 'tr_' . $index;
 ?>
 			<tr data-id="<?=$entry->id?>">
@@ -141,7 +143,7 @@ if( isset($termList[0]) ) {
 	if( $entry->id !== 1 ) {
 ?>
 					<div class="dropdown">
-						<button id="<?=$entry->domId?>" type="button" data-toggle="dropdown" class="btn btn-primary btn-xs" aria-haspopup="true" aria-expanded="false">MENU <span class="caret"></span></button>
+						<button id="<?=$entry->domId?>" type="button" data-bs-toggle="dropdown" class="btn btn-primary btn-xs" aria-haspopup="true" aria-expanded="false">MENU <span class="caret"></span></button>
 						<ul class="dropdown-menu" aria-labelledby="<?=$entry->domId?>">
 							<li><a href="#" data-action="modify">Edit</a></li>
 							<li><a href="#" data-action="unlink" class="text-danger">Delete</a></li>
@@ -154,11 +156,11 @@ if( isset($termList[0]) ) {
 ?>
 				</td>
 <?php
-		if( $option->subject === 'cat' )
+		if( $option->rowType === 'cat' )
 			echo '<td>', $entry->parentName, '</td>';
 ?>
 				<td><?=$entry->about?></td>
-				<td class="text-center"><?=$entry->objects?></td>
+				<td class="text-center"><?=$entry->childCount?></td>
 			</tr>
 <?php
 	}
@@ -171,10 +173,10 @@ doHtmlPaging( $paging, $_page->path )
 	</div>
 </div>
 <?php
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.async-form.js' );
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.term-form.js' );
-$_page->setMetaItem( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
+$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.term-form.js' );
+$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 var termForm;
 $(document).ready(function(){
 	termForm = $("form#term").termEdit();

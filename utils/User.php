@@ -3,9 +3,9 @@
  * Project: Blog Management System With Sevida-Like UI
  * Developed By: Ahmad Tukur Jikamshi
  *
- * @facebook: amaedyteeskpersonId
- * @twitter: amaedyteeskpersonId
- * @instagram: amaedyteeskpersonId
+ * @facebook: amaedyteeskuserId
+ * @twitter: amaedyteeskuserId
+ * @instagram: amaedyteeskuserId
  * @whatsapp: +2348145737179
  */
 class User {
@@ -21,10 +21,12 @@ class User {
 
 	public static function findId( string $value ) : int {
 		global $db;
-		$personId = $db->prepare( 'SELECT id FROM Person WHERE userName=:value OR email=:value LIMIT 1' );
-		$personId->execute( [ 'value' => $value ] );
-		$personId = parseInt( $personId->fetchColumn() );
-		return $personId;
+		$userId = $db->prepare( 'SELECT id FROM Person WHERE userName=:value OR email=:value LIMIT 1' );
+		$userId->execute( [ 'value' => $value ] );
+		if( $userId->rowCount() === 0 )
+			return 0;
+		$userId = (int) $userId->fetchColumn();
+		return $userId;
 	}
 	public static function getFields( string ...$fields ) {
 		global $db, $_login;

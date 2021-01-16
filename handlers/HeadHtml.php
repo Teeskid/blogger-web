@@ -14,30 +14,30 @@ if( LOGGED_IN ) {
 	$fields = User::getFields( $_login->userId, 'userName' );
 	$fields->permalink = Rewrite::userUri( $fields->userName );
 }
-$catsList = $db->prepare( 'SELECT IFNULL(master, 0) as header, master, id, title, permalink FROM Term WHERE subject=? ORDER BY IF(id=1,555,id) DESC LIMIT 20' );
+$catsList = $db->prepare( 'SELECT IFNULL(master, 0) as header, master, id, title, permalink FROM Term WHERE rowType=? ORDER BY IF(id=1,555,id) DESC LIMIT 20' );
 $catsList->execute( [ 'cat' ] );
 $catsList = $catsList->fetchAll( PDO::FETCH_CLASS|PDO::FETCH_GROUP, 'Term' );
 
-$_populars = $db->prepare( 'SELECT a.id, a.permalink, a.title, a.excerpt, a.posted, b.metaValue AS thumbnail FROM Post a LEFT JOIN PostMeta b ON b.postId=a.thumbnail AND b.metaKey=? WHERE a.subject=? AND a.status=? ORDER BY a.views DESC LIMIT 0,5' );
+$_populars = $db->prepare( 'SELECT a.id, a.permalink, a.title, a.excerpt, a.posted, b.metaValue AS thumbnail FROM Post a LEFT JOIN PostMeta b ON b.postId=a.thumbnail AND b.metaKey=? WHERE a.rowType=? AND a.status=? ORDER BY a.viewCount DESC LIMIT 0,5' );
 $_populars->execute( [ 'media_metadata', 'post', 'public' ] );
 $_populars = $_populars->fetchAll( PDO::FETCH_CLASS, 'Post' );
 
-$_archives = $db->prepare( 'SELECT DATE_FORMAT(posted, ?) AS archive FROM Post WHERE subject=? GROUP BY archive' );
+$_archives = $db->prepare( 'SELECT DATE_FORMAT(posted, ?) AS archive FROM Post WHERE rowType=? GROUP BY archive' );
 $_archives->execute( [ '%Y|%M|%m', 'post' ] );
 $_archives = $_archives->fetchAll();
 
 $_comments = $db->query( 'SELECT id, fullName, email, website, content, replied FROM Reply WHERE master=NULL ORDER BY replied DESC LIMIT 5' );
 $_comments = $_comments->fetchAll(PDO::FETCH_GROUP);
 
-$_postTags = $db->prepare( 'SELECT title, permalink FROM Term WHERE subject=? ORDER BY objects DESC LIMIT 20' );
+$_postTags = $db->prepare( 'SELECT title, permalink FROM Term WHERE rowType=? ORDER BY childCount DESC LIMIT 20' );
 $_postTags->execute( [ 'tag' ] );
 $_postTags = $_postTags->fetchAll( PDO::FETCH_CLASS, 'Term' );
 
 $liBuilder = function( Term &$entry ) use( $catsList ) : bool {
 	$entry->id = (int) $entry->id;
 	$entry->dom = 'ni_' . $entry->id;
-	$entry->title = htmlspecialchars($entry->title);
-	$entry->subject = 'cat';
+	$entry->title = escHtml($entry->title);
+	$entry->rowType = 'cat';
 	$entry->permalink = Rewrite::termUri( $entry );
 	if( $entry->id != 0 && isset($catsList[$entry->id]) ) {
 		echo '<li class="popup"><a href="', $entry->permalink,'">', $entry->title, '</a>', icon('plus'), '<ul aria-labelledby="', $entry->dom, '">';
@@ -51,8 +51,8 @@ $liBuilder = function( Term &$entry ) use( $catsList ) : bool {
 };
 $GLOBALS['liBuilder'] = $liBuilder;
 
-$_blogName = htmlspecialchars($cfg->blogName);
-$_pageName = htmlspecialchars($_page->title);
+$_blogName = escHtml($cfg->blogName);
+$_pageName = escHtml($_page->title);
 
 if( isset($_GET['src']) )
 	header( 'Content-Type: text/plain;charset=utf-8', true );
@@ -179,7 +179,7 @@ unset( $catsList, $liBuilder );
 					<ul id="moreUl" aria-labelledby="mn_m"></ul>
 				</li>
 			</ul>
-			<form id="searchForm" class="nav nav-right nav-form" action="#">
+			<form id="searchForm" class="nav nav-right nav-form">
 				<input type="search" name="s" value="Search Here" />
 				<button type="submit" name="submit" value="true"><?=icon('search')?></button>
 			</form>

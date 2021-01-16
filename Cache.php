@@ -2,7 +2,8 @@
 /**
  * Blog Cache Loader
  * 
- * Loads request cache for only GET requests
+ * Loads request cache for only GET requests and non-logged users
+ * 
  * @package Sevida
  */
 // Check login status and request method; we are not caching for POST and rest

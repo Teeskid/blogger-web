@@ -10,7 +10,7 @@
  */
 $theValue = $_VARS['p'] ?? $_VARS['name'] ?? null;
 $theValue = [ 'value' => $theValue ];
-$postType = $db->prepare( 'SELECT subject FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
+$postType = $db->prepare( 'SELECT rowType FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
 $postType->execute( $theValue );
 $postType = $postType->fetchColumn();
 if( ! $postType )
@@ -36,7 +36,7 @@ $theTerms = $db->prepare( 'SELECT a.title, a.permalink FROM Term a WHERE a.id=:i
 $theTerms->execute( [ 'id' => $post->category ] );
 $theTerms = $theTerms->fetchAll( PDO::FETCH_CLASS, 'Term' );
 foreach( $theTerms as $entry ) {
-	$entry->subject = 'cat';
+	$entry->rowType = 'cat';
 	$entry->permalink = Rewrite::termUri( $entry );
 	$theCrumb[] = [ $entry->permalink, $entry->title ];
 }
@@ -62,15 +62,15 @@ $postTags = $db->prepare( 'SELECT title, permalink FROM Term WHERE EXISTS(SELECT
 $postTags->execute( [ $post->id ] );
 $postTags = $postTags->fetchAll( PDO::FETCH_CLASS, 'Term' );
 foreach( $postTags AS &$entry ) {
-	$entry->subject = 'tag';
-	$entry->title = htmlspecialchars($entry->title);
+	$entry->rowType = 'tag';
+	$entry->title = escHtml($entry->title);
 	$entry->permalink = Rewrite::termUri( $entry );
-	$entry->permalink = htmlentities($entry->permalink);
+	$entry->permalink = escHtml($entry->permalink);
 	$entry = sprintf( '<a href="%s">%s</a>', $entry->permalink, $entry->title );
 }
 $postTags = implode( ', ', $postTags );
 
-// Fetch the attached media objects
+// Fetch the attached media childCount
 preg_match_all( '#\[media=([0-9]+)\](?:\[\/media\])#', $post->content, $postMedia );
 $postMedia = $postMedia[1] ?? [];
 if( isset($postMedia[0]) ) {
@@ -84,7 +84,7 @@ if( isset($postMedia[0]) ) {
 }
 
 // Fetch Related posts
-$postRelated = $db->prepare( 'SELECT a.id, a.title, a.permalink, a.posted, b.metaValue AS thumbnail FROM Post a LEFT JOIN PostMeta b ON b.postId=a.thumbnail AND b.metaKey=? WHERE a.subject=? AND a.category=? LIMIT 9' );
+$postRelated = $db->prepare( 'SELECT a.id, a.title, a.permalink, a.posted, b.metaValue AS thumbnail FROM Post a LEFT JOIN PostMeta b ON b.postId=a.thumbnail AND b.metaKey=? WHERE a.rowType=? AND a.category=? LIMIT 9' );
 $postRelated->execute( [ 'media_metadata', 'post', $post->category ] );
 $postRelated = $postRelated->fetchAll( PDO::FETCH_CLASS, 'Post' );
 
@@ -108,18 +108,18 @@ if( isset($postMedia) ) {
 				$entry->drawables = icon( $entry->drawables );
 			} else {
 				$entry->drawables = get_drawable( $entry->drawables, DRAWABLE_TINY );
-				$entry->name = htmlentities( $entry->name );
-				$entry->drawables = htmlentities( $entry->drawables );
+				$entry->name = escHtml( $entry->name );
+				$entry->drawables = escHtml( $entry->drawables );
 				$entry->drawables = sprintf( '<img src="%s" alt="%s" />', $entry->drawables, $entry->name );
 			}
 			$entry->permalink = '$1/attachment/'.$entry->permalink.'/';
 			$entry->permalink = preg_replace( '#(.+?)/+?$#', $entry->permalink, $post->permalink );
 			$entry->permalink = esc_dir( $entry->permalink );
-			$entry->permalink = htmlentities( $entry->permalink );
+			$entry->permalink = escHtml( $entry->permalink );
 			$entry->size = formatSize( $entry->size );
-			$entry->size = htmlspecialchars( $entry->size );
-			$entry->mime = htmlspecialchars( $entry->mime );
-			$entry->source = htmlentities( $entry->source );
+			$entry->size = escHtml( $entry->size );
+			$entry->mime = escHtml( $entry->mime );
+			$entry->source = escHtml( $entry->source );
 			$entry = sprintf(
 				'</p><div class="media">%s'.
 					'<a href="%s"><h5>%s</h5></a>'.
@@ -138,17 +138,17 @@ if( isset($postMedia) ) {
 }
 $post->content = preg_replace( '#\[media-[0-9]+\]#i', '<span class="message error">Attachemt has been removed / was not uploaded.</span>', $post->content );
 $post->content = preg_replace_callback( '#\[img="(.+?)"\]((.+?)\[/img\])?#s', function( $tmp ) {
-	$tmp[1] = htmlentities( $tmp[1] );
-	$tmp[2] = htmlentities( $tmp[2] );
+	$tmp[1] = escHtml( $tmp[1] );
+	$tmp[2] = escHtml( $tmp[2] );
 	$tmp = sprintf( '</p><a class="image" href="%s" ><img src="%s" alt="%s" /></a><p>', $tmp[1], $tmp[1], $tmp[2] );
 	return $tmp;
 }, $post->content );
 // parseBBCode( $entry->content );
 
 $_page = new Page( $post->title, $post->permalink );
-$_page->setMetaItem( Page::META_CSS_LOAD, 'post' );
-$post->title = htmlspecialchars($post->title);
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+$_page->addPageMeta( Page::META_CSS_LOAD, 'post' );
+$post->title = escHtml($post->title);
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 include( ABSPATH . BASE_UTIL . '/HeadHtml.php' );
 htmBreadCrumb( $theCrumb );
 ?>
@@ -203,18 +203,18 @@ if( $postType === 'post' ) {
 		$entry->permalink = Rewrite::postUri( $entry );
 		$entry->thumbnail = json_decode($entry->thumbnail);
 		$entry->thumbnail = Media::getImage( $entry->thumbnail, 'large' );
-		$entry->thumbnail = htmlentities($entry->thumbnail);
+		$entry->thumbnail = escHtml($entry->thumbnail);
 ?>
 	<article>
 		<div class="feed-image">
-			<img alt="<?=htmlentities($entry->title)?>" src="<?=$entry->thumbnail?>" />
+			<img alt="<?=escHtml($entry->title)?>" src="<?=$entry->thumbnail?>" />
 			<div class="feed-date">
 				<span class="dd"><?=$entry->posted->day?></span>
 				<span class="mm"><?=$entry->posted->month?></span>
 				<span class="yy"><?=$entry->posted->year?></span>
 			</div>
 		</div>
-		<h3><a href="<?=$entry->permalink?>"><?=htmlspecialchars($entry->title)?></a></h3>
+		<h3><a href="<?=$entry->permalink?>"><?=escHtml($entry->title)?></a></h3>
 	</article>
 <?php
 	}
@@ -231,10 +231,10 @@ if( $postType === 'post' ) {
 	<div id="comments" class="comments">
 <?php
 		$GLOBALS['htm_comment'] = function( $entry ) use( $postReplies ) {
-			$entry->content = htmlspecialchars( $entry->content );
+			$entry->content = escHtml( $entry->content );
 			parseBBCode( $entry->content );
-			$entry->name = htmlspecialchars( $entry->name );
-			$entry->website = htmlentities( $entry->website );
+			$entry->name = escHtml( $entry->name );
+			$entry->website = escHtml( $entry->website );
 			if( empty($entry->website) ) {
 				$entry->website = sprintf( '<span class="name">%s</span>', $entry->name );
 			} else {
@@ -261,7 +261,7 @@ if( $postType === 'post' ) {
 			$htm_comment($entry);
 		?>
 	</div>
-	<form id="comment" class="comment-form reply" role="form" action="<?=BASEPATH?>/comment.php" method="post">
+	<form id="comment" class="comment-form reply" action="<?=BASEPATH?>/comment.php" method="post">
 		<input id="comment-parent" type="hidden" name="master" value="0" />
 		<div class="right-align no-margin"><button id="comment-stop" class="btn" type="button">Cancel Reply</button></div>
 		<p class="text-center message">Your email address will not be published</p>
@@ -299,7 +299,7 @@ if( $postType === 'post' ) {
 			<div class="input-field">
 				<input id="comment-website" placeholder="Your Website" autocomplete="false" type="text" name="website" value="http://" optional="true" disabled="true" />
 			</div>
-			<p class="checkbox">
+			<p class="form-check">
 				<label for="comment-autosave"><input id="comment-autosave" type="checkbox" />
 				<span> Save my name, email, and website in this browser for the next time I comment.</label>
 			</p>
@@ -314,7 +314,7 @@ if( $postType === 'post' ) {
 	</form>
 </div>
 <?php
-$_page->setMetaItem( Page::META_JS_CODE, <<<'EOS'
+$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 $(document).ready(function(){
 	var owl = $('.feed.owl-carousel');
 	owl.owlCarousel({

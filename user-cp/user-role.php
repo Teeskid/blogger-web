@@ -10,7 +10,7 @@
  */
 
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
 
@@ -53,9 +53,9 @@ EOS;
 include( 'html-header.php' );
 ?>
 <div class="card">
-	<div class="card-content">
+	<div class="card-body">
 		<div class="card-title">Change <?=$user->userName?>'s role to:</div>
-		<form id="post" class="form" role="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post">
+		<form id="post" class="form" action="<?=$_SERVER['REQUEST_URI']?>" method="post">
 			<?=alert($error, 'error')?>
 			<input type="hidden" name="id" value="<?=$user->id?>" />
 			<div class="input-field">
@@ -65,7 +65,7 @@ include( 'html-header.php' );
 					<option value="<?=ADMIN_LEVEL_GLOBAL?>"<?=($user->role==ADMIN_LEVEL_GLOBAL?' selected':'')?>>A Global Admin</option>
 				</select>
 			</div>
-			<div class="form-group text-center">
+			<div class="mb-3 text-center">
 				<a href="admin.php" class="btn-flat" role="button">Cancel</a>
 				<button type="submit" class="btn" name="submit">UPDATE</button>
 			</div>

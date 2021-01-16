@@ -1,18 +1,19 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
+ * Installation Utilities
  *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Helper functions for the site installation, also the database schema
+ * 
+ * @package Sevida
+ * @subpackage Administration
  */
-function dropTables() {
+/**
+ * Drop all the tables
+ */
+function dropAllTables() {
 	global $db;
-	$DROPPER_QUERY = <<<'EOS'
+	$myQuery = <<<'EOS'
 	SET FOREIGN_KEY_CHECKS = 0;
-
 	DROP TABLE IF EXISTS Config;
 	DROP TABLE IF EXISTS Person;
 	DROP TABLE IF EXISTS PersonMeta;
@@ -23,46 +24,43 @@ function dropTables() {
 	DROP TABLE IF EXISTS Term;
 	DROP TABLE IF EXISTS TermLink;
 	DROP TABLE IF EXISTS TermMeta;
-
 	SET FOREIGN_KEY_CHECKS = 1;
 EOS;
-	$db->exec( $DROPPER_QUERY );
-	unset( $DROPPER_QUERY );
+	$db->exec( $myQuery );
 }
+/**
+ * Create the tables
+ */
 function createTables() {
 	global $db;
-	$INSTALL_QUERY = <<<'EOS'
+	$myQuery = <<<'EOS'
 	SET time_zone = "+01:00";
 	SET FOREIGN_KEY_CHECKS=0;
-
 	CREATE TABLE Config (
 	  metaKey varchar(20) PRIMARY KEY NOT NULL,
 	  metaValue longtext DEFAULT NULL
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 	CREATE TABLE Person (
 	  id bigint(20) PRIMARY KEY NOT NULL AUTO_INCREMENT,
 	  picture bigint(20) DEFAULT NULL,
-	  userName varchar(50) UNIQUE KEY NOT NULL,
+	  userName varchar(16) UNIQUE KEY NOT NULL,
 	  fullName tinytext DEFAULT NULL,
-	  email varchar(50) DEFAULT NULL,
-	  password varchar(50) DEFAULT NULL,
+	  email varchar(64) DEFAULT NULL,
+	  password varchar(128) DEFAULT NULL,
 	  role varchar(20) DEFAULT NULL,
 	  status varchar(20) DEFAULT NULL,
 	  KEY status (status),
 	  KEY picture (picture),
 	  KEY role (role)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE PersonMeta (
-	  personId bigint(20) NOT NULL,
+	  userId bigint(20) NOT NULL,
 	  metaKey varchar(20) NOT NULL,
 	  metaValue longtext,
-	  UNIQUE KEY MemberMeta (personId,metaKey),
-	  KEY personId (personId),
+	  UNIQUE KEY MemberMeta (userId,metaKey),
+	  KEY userId (userId),
 	  KEY metaKey (metaKey)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE Post (
 	  id bigint(20) PRIMARY KEY NOT NULL AUTO_INCREMENT,
 	  thumbnail bigint(20) DEFAULT NULL,
@@ -76,21 +74,20 @@ function createTables() {
 	  modified timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	  status varchar(20) DEFAULT NULL,
 	  password varchar(100) DEFAULT NULL,
-	  subject varchar(20) DEFAULT NULL,
+	  rowType varchar(20) DEFAULT NULL,
 	  mimeType varchar(30) DEFAULT NULL,
-	  views bigint(20) NOT NULL DEFAULT '0',
+	  viewCount bigint(20) NOT NULL DEFAULT '0',
 	  UNIQUE KEY permalink (permalink),
 	  KEY thumbnail (thumbnail),
 	  KEY category (category),
 	  KEY author (author),
 	  KEY posted (posted),
 	  KEY modified (modified),
-	  KEY views (views),
+	  KEY viewCount (viewCount),
 	  KEY status (status),
 	  KEY mimeType (mimeType),
-	  KEY subject (subject)
+	  KEY rowType (rowType)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE PostMeta (
 	  postId bigint(20) NOT NULL,
 	  metaKey varchar(20) NOT NULL,
@@ -99,26 +96,23 @@ function createTables() {
 	  KEY postId (postId),
 	  KEY metaKey (metaKey)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE Term (
 	  id bigint(20) PRIMARY KEY NOT NULL AUTO_INCREMENT,
 	  master bigint(20) DEFAULT NULL,
 	  permalink varchar(50) UNIQUE KEY NOT NULL,
 	  title tinytext NOT NULL,
 	  about tinytext DEFAULT NULL,
-	  objects bigint(20) NOT NULL DEFAULT '0',
-	  subject varchar(20) NOT NULL,
-	  KEY subject (subject),
+	  childCount bigint(20) NOT NULL DEFAULT '0',
+	  rowType varchar(20) NOT NULL,
+	  KEY rowType (rowType),
 	  KEY master (master)
 	) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE TermLink (
 	  postId bigint(20) NOT NULL,
 	  termId bigint(20) NOT NULL,
 	  KEY termId (termId),
 	  KEY postId (postId)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE TermMeta (
 	  termId bigint(20) NOT NULL,
 	  metaKey varchar(100) NOT NULL,
@@ -127,7 +121,6 @@ function createTables() {
 	  KEY termId (termId),
 	  KEY metaKey (metaKey)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE Reply (
 	  id bigint(20) NOT NULL AUTO_INCREMENT,
 	  postId bigint(20) NOT NULL,
@@ -148,7 +141,6 @@ function createTables() {
 	  KEY email (email),
 	  KEY status (status)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
 	CREATE TABLE ReplyMeta (
 	  replyId bigint(20) NOT NULL DEFAULT '0',
 	  metaKey varchar(100) NOT NULL,
@@ -162,7 +154,7 @@ function createTables() {
 	  ADD CONSTRAINT FK_Person_Post FOREIGN KEY (picture) REFERENCES Post (id) ON DELETE SET NULL ON UPDATE CASCADE;
 
 	ALTER TABLE PersonMeta
-	  ADD CONSTRAINT FK_PersonMeta_Person FOREIGN KEY (personId) REFERENCES Person (id) ON DELETE CASCADE ON UPDATE CASCADE;
+	  ADD CONSTRAINT FK_PersonMeta_Person FOREIGN KEY (userId) REFERENCES Person (id) ON DELETE CASCADE ON UPDATE CASCADE;
 
 	ALTER TABLE Post
 	  ADD CONSTRAINT FK_Post_Person FOREIGN KEY (author) REFERENCES Person (id) ON DELETE SET NULL ON UPDATE CASCADE,
@@ -192,6 +184,6 @@ function createTables() {
 
 	SET FOREIGN_KEY_CHECKS=1;
 EOS;
-	$db->exec( $INSTALL_QUERY );
-	unset( $INSTALL_QUERY );
+	$db->exec( $myQuery );
+	unset( $myQuery );
 }

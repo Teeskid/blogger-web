@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 if(isset($_POST['import']))
 {
@@ -65,7 +65,7 @@ $options = implode($options);
 include_once( ABSPATH . USER_UTIL . '/HeadHtml.php' );
 ?>
 <div class="card">
-	<div class="card-content">
+	<div class="card-body">
 		<span class="card-title">Import Article</span>
 		<div class="divider"></div>
 		<form action="<?=$_SERVER['REQUEST_URI'];?>" method="post" enctype="multipart/form-data">

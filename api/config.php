@@ -1,27 +1,32 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
+ * Configuration Requests Handler
  *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Handles requests to configure the blog
+ *
+ * @package Sevida
+ * @subpackage Api
+ */
+/**
+ * @var bool
  */
 define( 'REQUIRE_LOGIN', true );
+
+/** Load blog bootstrap file and utilities */
 require( dirname(__FILE__) . '/Load.php' );
 
-$errors = [];
-$action = request('action');
+$response = new Response();
+$action = request( 'action' );
+
 switch( $action ) {
 	case 'tools':
-		$options = request( 'minify', 'sitemap' );
-		if( $options->minify ) {
+		$option = request( 'minify', 'sitemap' );
+		if( $option->minify ) {
 			require( ABSPATH . USER_UTIL . '/ResUtil.php' );
 			minifyFiles('js');
 			minifyFiles('css');
 		}
-		if( $options->sitemap ) {
+		if( $option->sitemap ) {
 			set_error_handler(function( $errCode, $errText ) use(&$errors) {
 				throw new Exception();
 			});
@@ -38,51 +43,57 @@ switch( $action ) {
 	case 'modify':
 		$options = request( 'blogName', 'blogDesc', 'blogDate', 'permalink', 'blogEmail', 'searchable' );
 		$options->searchable = json_encode( $options->searchable === "on" );
-		try {
-			$db->beginTransaction();
-			$replace = $db->prepare( 'REPLACE INTO Config (metaKey, metaValue) VALUES (?,?),(?,?),(?,?),(?,?),(?,?),(?,?)' );
-			$replace->execute([
-				'blogName', $options->blogName,
-				'blogDesc', $options->blogDesc,
-				'blogDate', $options->blogDate,
-				'permalink', $options->permalink,
-				'blogEmail', $options->blogEmail,
-				'searchable', $options->searchable
-			]);
-			$db->commit();
-			$response['message'] = 'Changes Saved';
-		} catch(Exception $e) {
-			if( $db->inTransaction() )
-				$db->rollBack();
-			$errors[] = $e->getMessage();
+		$response->setFeedBacks( [ 'blogName', 'blogEmail', 'blogDesc', 'blogDate', 'permalink' ], true );
+		if( ! preg_match( '#^[\w\d\s_-]{5,15}$#', $options->blogName ) ) {
+			$response->setFeedBack( 'blogName', false );
+			$response->addMessage( 'invalid blog name' );
 		}
+		if( ! testEmail( $options->blogEmail ) ) {
+			$response->setFeedBack( 'blogEmail', false );
+			$response->addMessage( 'invalid email address' );
+		}
+		if( ! $response->hasMessage() ) {
+			try {
+				$options = get_object_vars($options);
+				$holders = [];
+				foreach( $options as $index => $entry )
+					array_push( $holders, '(' . $db->quote( $index ) . ', :' . $index . ')' );
+				$holders = implode( ',', $holders );
+				$db->beginTransaction();
+				$replace = $db->prepare( 'REPLACE INTO Config (metaKey, metaValue) VALUES ' . $holders );
+				$replace->execute( $options );
+				$db->commit();
+			} catch(Exception $e) {
+				if( $db->inTransaction() )
+					$db->rollBack();
+				$response->addMessage( $e->getMessage() );
+			}
+		}
+		$response->determineSuccess();
 		break;
-	case 'reset':
+	case 'resets':
 		require( ABSPATH . USER_UTIL . '/LoginUtil.php' );
-		require( ABSPATH . USER_UTIL . '/ConfigUtil.php' );
+		require( ABSPATH . USER_UTIL . '/SetupUtil.php' );
 		require( ABSPATH . USER_UTIL . '/InstallUtil.php' );
 		$options = request( 'noFiles', 'password' );
 		$options->noFiles = ! empty( $options->noFiles );
+		$response->setFeedBacks( [ 'password' ], false );
 		try {
-			if( ! matchPassword( $_login->userId, $options->password ) )
-				throw new Exception( 'Your password is incorrect.' );
-			dropTables();
+			if( ! matchPassword( $_login->userId, $options->password ) ) {
+				$response->setFeedBack( "password", false );
+				throw new Exception( 'incorrect password' );
+			}
+			dropAllTables();
 			unlinkUserFiles( ! $options->noFiles );
 			session_destroy();
 		} catch( Exception $e ) {
-			$errors[] = $e->getMessage();
+			if( $db->inTransaction() )
+				$db->rollBack();
+			$response->addMessage( $e->getMessage() );
 		}
+		$response->determineSuccess();
 		break;
 	default:
 		die();
-}
-$response = [];
-if( isset($errors[0]) ){
-	$response['success'] = false;
-	$response['message'] = implode( ', ', $errors );
-	$response['redirect'] = '';
-} else {
-	$response['success'] = true;
-	$response['message'] = 'Done successfully';
 }
 jsonOutput( $response );

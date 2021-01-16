@@ -1,13 +1,7 @@
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Blog Widget
  */
-(function(window){
+(function(window, document){
 	var openPopup = function(button){
 		var mNavUL = document.getElementById(button.dataset.target);
 		mNavUL.classList.add("open");
@@ -106,4 +100,4 @@
 			this.classList.add("active");
 		};
 	};
-})(window);
+})(window, document);

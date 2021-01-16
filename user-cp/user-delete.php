@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 require( dirname(__FILE__) . '/Load.php' );
-require( ABSPATH . BASE_UTIL . '/UIUtil.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
 
@@ -54,7 +54,7 @@ else
 }
 $error = implode('<br/>', $error);
 
-$_page = new Page( 'Delete User', '/user-cp/user-cp-delete.php?id='.$user->id );
+$_page = new Page( 'Delete User', USERPATH . '/user-cp-delete.php?id='.$user->id );
 include( 'html-header.php' );
 ?>
 <nav>
@@ -67,9 +67,9 @@ include( 'html-header.php' );
 	</div>
 </nav>
 <div class="card card-small">
-	<div class="card-content">
+	<div class="card-body">
 		<span class="card-title">Confirm Action</span>
-		<form class="form text-center" role="form" action="<?=$_SERVER['REQUEST_URI'];?>" method="post">
+		<form class="form text-center" action="<?=$_SERVER['REQUEST_URI'];?>" method="post">
 			<?=alert($error, 'error')?>
 			<input type="hidden" name="id" value="<?=$user->id;?>" />
 			<div class="card-panel red lighten-4">Are you sure you want to delete <?=$user->userName;?> ?</div>

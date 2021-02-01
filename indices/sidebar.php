@@ -1,18 +1,16 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * HTML SideBar File
+ * @package Sevida
+ * @subpackage Handlers
  */
+if( ! defined('ABSPATH') )
+	die();
 ?>
 <aside class="col-aside">
 	<div class="heading"><h2><a href="#">ADVERTISEMENT</a></h2></div>
 <?php
-if( ! LOGGED_IN && ! SE_DEBUG ) {?>
+if( ! isset($_usr) && ! SE_DEBUG ) {?>
 	<div class="advert advert-aside">
 		<!-- RESPONSIVE -->
 		<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
@@ -48,7 +46,7 @@ EOS;
 		$entry->thumbnail = Media::getImage( $entry->thumbnail, 'small' );
 		$entry->thumbnail = escHtml($entry->thumbnail);
 		$entry->excerpt = escHtml($entry->excerpt);
-		$entry->posted = parseDate( $entry->posted );
+		$entry->datePosted = parseDate( $entry->datePosted );
 		$entry->permalink = Rewrite::postUri( $entry );
 ?>
 		<article>	
@@ -69,7 +67,7 @@ EOS;
 foreach( $_archives as $entry ) {
 	$entry = $entry->archive;
 	$entry = explode( "|", $entry );
-	$index = sprintf( '%s/%s/%s/', BASEPATH, $entry[0], $entry[2] );
+	$index = sprintf( '%s/%s/%s/', BASEURI, $entry[0], $entry[2] );
 	$entry = sprintf( '%s %s', $entry[1], $entry[0] );
 	$entry = escHtml($entry);
 	$index = escHtml($index);
@@ -82,7 +80,7 @@ foreach( $_archives as $entry ) {
 	</div>
 	<div id="replies">
 		<div class="comment-item">
-			<img alt="Amaedy" class="comment-img" src="<?=BASEPATH?>/images/owner.jpg" />
+			<img alt="Amaedy" class="comment-img" src="<?=BASEURI?>/images/owner.jpg" />
 			<p class="comment-body">
 				<span>Sombody</span>
 				<span>Jan 25, 2019 12:12:01 AM</span>
@@ -92,9 +90,9 @@ foreach( $_archives as $entry ) {
 	</div>
 	<div class="heading"><h2><a href="#">PAGES</a></h2></div>
 <?php
-if( isset($_pages[0]) ) {
+if( isset($HTMLs[0]) ) {
 	echo '<ul id="pages" class="card">';
-	foreach( $_pages as $index => $entry ) {
+	foreach( $HTMLs as $index => $entry ) {
 		echo '<li><a href="#">Page ', $index, '</a></li>';
 	}
 	echo '</ul>';
@@ -106,7 +104,7 @@ if( isset($_postTags[0]) ) {
 	echo '<ul id="labels" class="card">';
 	foreach( $_postTags as $entry ) {
 		$entry->title = escHtml($entry->title);
-		$entry->rowType = 'tag';
+		$entry->rowType = Term::TYPE_TAG;
 		$entry->permalink = Rewrite::termUri( $entry );
 		$entry->permalink = escHtml($entry->permalink);
 ?>
@@ -117,7 +115,7 @@ if( isset($_postTags[0]) ) {
 }
 ?>
 	<div id="about" class="about card">
-		<img alt="Amaedy Teeskid" class="about-img" src="<?=BASEPATH?>/images/owner.jpg" />
+		<img alt="Amaedy Teeskid" class="about-img" src="<?=BASEURI?>/images/owner.jpg" />
 		<h4 class="about-name">Amaedy Teeskid</h4>
 		<p class="about-text">
 			<span>Sombody</span>

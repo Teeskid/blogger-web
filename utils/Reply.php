@@ -11,7 +11,7 @@
 class Reply {
 	public $id;
 	public $postId;
-	public $master;
+	public $term;
 	public $author;
 	public $fullName;
 	public $email;

@@ -1,13 +1,105 @@
 <?php
 /**
  * Base and Basic Functions
- * 
- * Base generic utilities, PHP5 compatible functions
- *
  * @package Sevida
  * @subpackage Utilities
  */
-
+/**
+ * Binds a custom error and exception handlers to pretty-print errors
+ */
+function bindErrorHandlers() {
+	$errCall = function( $errCode, $errText, $errFile, $errLine ) {
+		$errText = sprintf( '%s<br>Location: <code>%s</code> at line <code>%s</code>', $errText, $errFile, $errLine );
+		sendError( $errText );
+	};
+	set_error_handler( $errCall );
+	set_exception_handler( function( $exception ) use( $errCall ) {
+		$errCall( $exception->getCode(), $exception->getMessage(), $exception->getFile(), $exception->getLine() );
+	} );
+}
+/**
+ * Checks globals and standardize them due to server software difference
+ * Prohibits global variable override
+ */
+function fixRequestVars() {
+	if( ini_get( 'register_globals' ) ) {
+		if ( isset( $_REQUEST['GLOBALS'] ) )
+			sendError( 'GLOBALS overwrite attempt detected.' );
+		$noUnset = array( 'GLOBALS', '_GET', '_POST', '_COOKIE', '_REQUEST', '_SERVER', '_ENV', '_FILES' );
+		$input = array_merge( $_GET, $_POST, $_COOKIE, $_SERVER, $_ENV, $_FILES, (isset( $_SESSION ) && is_array( $_SESSION ) ? $_SESSION : [] ) );
+		foreach ( $input as $k => $v )
+			if ( !in_array( $k, $noUnset ) && isset( $GLOBALS[$k] ) ) {
+				unset( $GLOBALS[$k] );
+			}
+	}
+}
+/**
+ * PHP and mysql version check : If they do not meet the requiremnt, and error page
+ * displays with an appropriate response header
+ */
+function checkVersions() {
+	global $_phpVersion, $_blogVersion;
+	$phpVersion = phpversion();
+	if ( version_compare( $_phpVersion, $phpVersion, '>' ) )
+		sendError( sprintf( 'Your server is running PHP version %1$s but Blog Software %2$s requires at least %3$s.', $phpVersion, $_blogVersion, $_phpVersion ) );
+	if ( ! extension_loaded( 'mysql' ) && ! extension_loaded( 'mysqli' ) && ! extension_loaded( 'mysqlnd' ) )
+		sendError( 'Your PHP installation appears to be missing the MySQL extension which is required by Blog.' );
+}
+/**
+ * Does some work around to fix $_SERVER variable to be almost same on all servers 
+ */
+function fixServerVars() {
+	$defaultValues = array(
+		'SERVER_SOFTWARE' => '',
+		'REQUEST_URI' => '',
+	);
+	$_SERVER = array_merge( $defaultValues, $_SERVER );
+	// Fix for IIS when running with PHP ISAPI
+	if ( empty( $_SERVER['REQUEST_URI'] ) || ( PHP_SAPI != 'cgi-fcgi' && preg_match( '/^Microsoft-IIS\//', $_SERVER['SERVER_SOFTWARE'] ) ) ) {
+		// IIS Mod-Rewrite
+		if ( isset( $_SERVER['HTTP_X_ORIGINAL_URL'] ) ) {
+			$_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_ORIGINAL_URL'];
+		}
+		// IIS Isapi_Rewrite
+		elseif ( isset( $_SERVER['HTTP_X_REWRITE_URL'] ) ) {
+			$_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_REWRITE_URL'];
+		} else {
+			// Use ORIG_PATH_INFO if there is no PATH_INFO
+			if ( !isset( $_SERVER['PATH_INFO'] ) && isset( $_SERVER['ORIG_PATH_INFO'] ) )
+				$_SERVER['PATH_INFO'] = $_SERVER['ORIG_PATH_INFO'];
+			// Some IIS + PHP configurations puts the script-name in the path-info (No need to append it twice)
+			if ( isset( $_SERVER['PATH_INFO'] ) ) {
+				if ( $_SERVER['PATH_INFO'] == $_SERVER['SCRIPT_NAME'] )
+					$_SERVER['REQUEST_URI'] = $_SERVER['PATH_INFO'];
+				else
+					$_SERVER['REQUEST_URI'] = $_SERVER['SCRIPT_NAME'] . $_SERVER['PATH_INFO'];
+			}
+			// Append the query if it exists and isn't null
+			if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
+				$_SERVER['REQUEST_URI'] .= '?' . $_SERVER['QUERY_STRING'];
+			}
+		}
+	}
+	// Fix for PHP AS CGI hosts that set SCRIPT_FILENAME to something ending in php.cgi for all requests
+	if ( isset( $_SERVER['SCRIPT_FILENAME'] ) && ( strpos( $_SERVER['SCRIPT_FILENAME'], 'php.cgi' ) == strlen( $_SERVER['SCRIPT_FILENAME'] ) - 7 ) )
+		$_SERVER['SCRIPT_FILENAME'] = $_SERVER['PATH_TRANSLATED'];
+	// Fix for Dreamhost and other PHP AS CGI hosts
+	if ( strpos( $_SERVER['SCRIPT_NAME'], 'php.cgi' ) !== false )
+		unset( $_SERVER['PATH_INFO'] );
+	// Fix empty PHP_SELF
+	$PHP_SELF = $_SERVER['PHP_SELF'];
+	if ( empty( $PHP_SELF ) )
+		$_SERVER['PHP_SELF'] = $PHP_SELF = preg_replace( '/(\?.*)?$/', '', $_SERVER["REQUEST_URI"] );
+	unset($defaultValues);
+}
+/**
+ * Loads class file by the class name
+ * @param string $className
+ */
+function classLoader( $className ) {
+	$className = strNoBs( $className );
+	require( ABSPATH . BASE_UTIL . DIRECTORY_SEPARATOR . $className . '.php' );
+}
 /**
  * Return the current server protocol
  * @return string
@@ -30,7 +122,7 @@ function isHttps() {
 	return false;
 }
 /**
- * Replaces trailing slashes with forward slashes in $str
+ * Replaces trailing slashes with forward slashes in text
  * @param string $str
  * @return string
  */
@@ -41,7 +133,7 @@ function strNoBs( $str ) {
  * Guess the base / root path of the blog
  * @return string
  */
-function getBasePath() {
+function getBaseUri() {
 	$phpSelf = $_SERVER['PHP_SELF'];
 	$srcFile = $_SERVER['SCRIPT_FILENAME'];
 	do {
@@ -60,25 +152,15 @@ function getBasePath() {
  * Guess the base url without any path segment attached
  * @return string
  */
-function getBaseUrl() {
-	$PROTOCOL = 'http' . ( isHttps() ? 's' : '' ) . '://';
-	return  $PROTOCOL . $_SERVER['HTTP_HOST'];
+function getOrigin() {
+	$SCHEME = 'http' . ( isHttps() ? 's' : '' ) . '://';
+	return  $SCHEME . $_SERVER['HTTP_HOST'];
 }
 /**
  * Sends a json header in ready to outputing a json data
  */
 function jsonHeader() {
 	header( 'Content-Type: application/json', true );
-}
-/**
- * Prints out a json-serialized version of an array
- * @param array $json The array to be printed out
- */
-function jsonOutput( $response ) {
-	jsonHeader();
-	@ob_clean();
-	echo json_encode($response);
-	exit;
 }
 /**
  * Tells the client not to cache the response we are sending
@@ -90,39 +172,48 @@ function noCacheHeaders() {
 	];
 	if ( function_exists( 'header_remove' ) )
 		@header_remove( 'Last-Modified' );
-	else
-		foreach ( headers_list() as $header ) {
+	else {
+		$allHeaders = headers_list();
+		foreach ( $allHeaders as $header ) {
 			if ( 0 === stripos( $header, 'Last-Modified' ) ) {
 				$headers['Last-Modified'] = '';
 				break;
 			}
 		}
+	}
 	foreach ( $headers as $name => $field_value )
 		@header("{$name}: {$field_value}");
 }
 /**
+ * Send a HTTP response header
+ * @param int $code
+ * @param string $text
+ */
+function headStatus( $code, $text ) {
+	header( getProtocol() . " $code $text", true, $code );
+}
+/**
  * Sends a 500 status code: Meaning there is an internal sever error, returns a message for
- * use with showError
+ * use with respond
  * @return string
  */
 function internalServerError() {
-	$message = '500 Internal Server Error';
-	header( getProtocol() . $message, true, 500 );
-	return $message;
+	headStatus( 500, 'Internal Server Error' );
 }
 /**
- * Sends a 404 response status: Meaning the requested object was not found on server
+ * Sends a 404 status code: Meaning the requested object was not found on server
  */
 function objectNotFound() {
-	header( getProtocol() . '404 Page Not Found', true, 404 );
+	headStatus( 404, 'Page Not Found' );
 }
 /**
  * Redirects to a target url, without caching
  * @param string $targetUrl The url to reditect to
- * @exits Halters the script execution
  */
 function redirect( $targetUrl ) {
 	noCacheHeaders();
+	if( defined('SE_JSON') && SE_JSON )
+		die( $targetUrl );
 	header( 'Location: ' . $targetUrl );
 	exit;
 }
@@ -133,6 +224,7 @@ function redirect( $targetUrl ) {
 function startTimer() {
 	global $_TIME_BEG;
 	$_TIME_BEG = microtime(true);
+	$GLOBALS['_TIME_BEG'] = $_TIME_BEG;
 }
 /**
  * Stop the global blog timer
@@ -144,33 +236,29 @@ function stopTimer() {
 	$_TIME_ELP = $_TIME_END - $_TIME_BEG;
 }
 /**
- * Pretty print error messages with an appropriate response status header
- * @param string $title An Optional error page title. An empty title defaults 'Unknown Error'
- * @param mixed|array|object $message The error page body html or plain text
+ * Pretty print a message as a page or a json response
+ * @param string $message Error message body
+ * @param int $statusCode [option] defaults to 500
+ * @param string $statusText [optional] defaults to interal server error 
  */
-function showError( $title, $message = false ) {
-	if( ! $message ) {
-		$message = $title;
-		$title = 'Unknown Error';
-	}
-	if( ! is_string($message) ) {
-		$title = 'JSON Dump';
-		$message = json_encode( $message );
-	}
-	ob_clean();
+function sendError( $message, $statusText = 'Internal Server Error', $statusCode = 500 ) {
+	ob_end_clean();
+	headStatus( $statusCode, $statusText );
 	if( defined('SE_JSON') && SE_JSON ) {
-		jsonOutput( [ 'success' => false, 'message' => $message ] );
-		exit;
+		jsonHeader();
+		$message = [ 'success' => false, 'message' => $message ];
+		$message = json_encode($message);
+		die($message);
 	}
 	header( 'Content-Type: text/html; charset=utf-8' );
-	echo <<<EOS
+?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="favicon.png" rel="shortcut icon" type="image/png" />
-<title>$title</title>
+<title><?=$statusText?></title>
 <style type="text/css">
 html {
 	background: #f1f1f1;
@@ -184,6 +272,7 @@ body {
 	max-width: 700px;
 	-webkit-box-shadow: 0 1px 3px rgba( 0,0,0,0.13 );
 	box-shadow: 0 1px 3px rgba( 0,0,0,0.13 );
+	margin-top: 50px;
 }
 h1 {
 	border-bottom: 1px solid #dadada;
@@ -194,15 +283,12 @@ h1 {
 	padding: 0;
 	padding-bottom: 7px;
 }
-#error-page {
-	margin-top: 50px;
-}
-#error-page p {
+p {
 	font-size: 14px;
 	line-height: 1.5;
 	margin: 25px 0 20px;
 }
-#error-page code {
+code {
 	font-family: Consolas, Monaco, monospace;
 }
 ul li {
@@ -249,11 +335,6 @@ a:focus {
 	box-shadow: 0 1px 0 #ccc;
 	vertical-align: top;
 }
-.btn.btn-large {
-	height: 30px;
-	line-height: 28px;
-	padding: 0 12px 2px;
-}
 .btn:hover,
 .btn:focus {
 	background: #fafafa;
@@ -277,11 +358,11 @@ a:focus {
 }
 </style>
 </head>
-<body id="error-page">
-	<h1>$title</h1>
-	<p>$message</p>
+<body>
+	<h1><?=( $statusCode . ' ' . $statusText )?></h1>
+	<p><?=$message?></p>
 </body>
 </html>
-EOS;
+<?php
 	exit;
 }

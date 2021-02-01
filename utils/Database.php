@@ -30,7 +30,7 @@ class Database extends PDO {
 		'TermLink',
 		'TermInfo',
 		'users',
-		'PersonMeta'
+		'UzerMeta'
 	];
 	function __construct( string $host, string $name, string $charset, string $user, string $pass ) {
 		$this->dbhost = $host;
@@ -39,6 +39,10 @@ class Database extends PDO {
 		$this->dbpass = $pass;
 		$this->charset = $charset;
 	}
+	/**
+	 * Instantiates a database connection, displays an error page on connection failure
+	 * @return bool
+	 */
 	function dbConnect() : bool {
 		$pdoString = sprintf( 'mysql:host=%s;dbname=%s;charset=%s', $this->dbhost, $this->dbname, $this->charset );
 		try {
@@ -56,7 +60,7 @@ class Database extends PDO {
 		$mQuery = file_exists($sqlFile) ? file_get_contents($sqlFile) : '';
 		if( empty($mQuery) )
 			throw( new Exception('IO Error') );
-		self::exec($mQuery);
+		PDO::exec($mQuery);
 		return true;
 	}
 	function fetchClass( PDOStatement $stmt, $class ) {

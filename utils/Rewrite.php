@@ -1,21 +1,17 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * URL Rewrite Controler
+ * @package Sevida
+ * @subpackage Utilities
  */
 class Rewrite {
-	const PAGE_SYNTAX = '/%permalink%/';
-	const TERM_SYNTAX = '/%rowType%/%permalink%/';
-	const USER_SYNTAX = '/user/%permalink%/';
+	const PAGE_SYNTAX = '/%name%/';
+	const TERM_SYNTAX = '/%type%/%name%/';
+	const USER_SYNTAX = '/user/%name%/';
 	const POST_SYNTAX = [
-		'/%year%/%month%/%permalink%/',
-		'/post/%permalink%/',
-		'/%permalink%/'
+		'/%year%/%month%/%name%/',
+		'/post/%name%/',
+		'/%name%/'
 	];
 
 	const P_YYMM = 0;
@@ -29,7 +25,7 @@ class Rewrite {
 		'%hour%',
 		'%minute%',
 		'%second%',
-		'%permalink%',
+		'%name%',
 		'%id%'
 	];
 	public $patternString = [
@@ -61,29 +57,29 @@ class Rewrite {
 		array_push( $this->rules, $rule );
 	}
 	public static function pageUri( Page $page ) : string {
-		$permalink = BASEPATH . SELF::PAGE_SYNTAX;
-		$permalink = str_replace( '%permalink%', $page->permalink, $permalink );
+		$permalink = BASEURI . SELF::PAGE_SYNTAX;
+		$permalink = str_replace( '%name%', $page->permalink, $permalink );
 		return $permalink;
 	}
 	public static function postUri( Post $post ) : string {
-		global $cfg;
-		$permalink = BASEPATH . SELF::POST_SYNTAX[$cfg->permalink];
-		$permalink = str_replace( '%permalink%', $post->permalink, $permalink );
-		$permalink = str_replace( '%year%', $post->posted->year, $permalink );
-		$permalink = str_replace( '%month%', $post->posted->month, $permalink );
-		$permalink = str_replace( '%day%', $post->posted->day, $permalink );
+		global $_cfg;
+		$permalink = BASEURI . SELF::POST_SYNTAX[$_cfg->permalink];
+		$permalink = str_replace( '%name%', $post->permalink, $permalink );
+		$permalink = str_replace( '%year%', $post->datePosted->year, $permalink );
+		$permalink = str_replace( '%month%', $post->datePosted->month, $permalink );
+		$permalink = str_replace( '%day%', $post->datePosted->day, $permalink );
 		$permalink = str_replace( '%id%', $post->id, $permalink );
 		return $permalink;
 	}
 	public static function userUri( string $username ) : string {
-		$permalink = BASEPATH . SELF::USER_SYNTAX;
-		$permalink = str_replace( '%permalink%', $username, $permalink );
+		$permalink = BASEURI . SELF::USER_SYNTAX;
+		$permalink = str_replace( '%name%', $username, $permalink );
 		return $permalink;
 	}
 	public static function termUri( Term $term ) : string {
-		$permalink = BASEPATH . SELF::TERM_SYNTAX;
-		$permalink = str_replace( '%permalink%', $term->permalink, $permalink );
-		$permalink = str_replace( '%rowType%', $term->rowType == 'cat' ? 'category' : 'tag', $permalink );
+		$permalink = BASEURI . SELF::TERM_SYNTAX;
+		$permalink = str_replace( '%name%', $term->permalink, $permalink );
+		$permalink = str_replace( '%type%', $term->rowType == Term::TYPE_CAT ? 'category' : Term::TYPE_TAG, $permalink );
 		return $permalink;
 	}
 }

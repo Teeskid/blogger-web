@@ -9,13 +9,13 @@
  * @whatsapp: +2348145737179
  */
 define( 'REQUIRE_LOGIN', true );
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . USER_UTIL . '/MediaUtil.php' );
 
 noCacheHeaders();
 mediaConstants();
 
-$response = [];
+$json = [];
 $action = request( 'action', 'id' );
 switch( $action->action ) {
 	case 'unlink':
@@ -23,16 +23,16 @@ switch( $action->action ) {
 		if( ! is_array($mediaList) )
 			$mediaList = [ $mediaList ];
 		$mediaList = array_map( 'parseInt', $mediaList );
-		$mediaList = $db->quoteList( $mediaList );
+		$mediaList = $_db->quoteList( $mediaList );
 		try {
-			$db->beginTransaction();
-			$mediaFiles = $db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId IN (' . $mediaList . ') AND metaKey=?' );
+			$_db->beginTransaction();
+			$mediaFiles = $_db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId IN (' . $mediaList . ') AND metaKey=?' );
 			$mediaFiles->execute( [ 'media_metadata' ] );
 			$mediaFiles = $mediaFiles->fetchAll( PDO::FETCH_COLUMN|PDO::FETCH_ASSOC );
 			
-			$db->exec( 'DELETE FROM Post WHERE id IN (' . $mediaList . ')' );
+			$_db->exec( 'DELETE FROM Post WHERE id IN (' . $mediaList . ')' );
 
-			$db->commit();
+			$_db->commit();
 			
 			foreach( $mediaFiles AS &$entry ) {
 				$entry = json_decode($entry);
@@ -50,13 +50,13 @@ switch( $action->action ) {
 				}
 				$entry = null;
 			}
-			$response['success'] = true;
-			$response['message'] = 'Deleted succesfully.';
+			$json['success'] = true;
+			$json['message'] = 'Deleted succesfully.';
 		} catch( Exception $e ) {
-			if( $db->inTransaction() )
-				$db->rollBack();
-			$response['success'] = false;
-			$response['message'] = $e->getMessage();
+			if( $_db->inTransaction() )
+				$_db->rollBack();
+			$json['success'] = false;
+			$json['message'] = $e->getMessage();
 		}
 		break;
 	case 'modify':
@@ -76,24 +76,24 @@ switch( $action->action ) {
 		
 		if( ! isset($error[0]) )
 		try {
-			$db->beginTransaction();
+			$_db->beginTransaction();
 			$tempId = Media::findId( $media->permalink );
 			if( $tempId && $tempId !== $action->id )
 				throw new Exception( 'Duplicate permalink' );
-			$insert = $db->prepare( 'UPDATE Post SET permalink=?,title=?,modified=DATE(?) WHERE rowType=? AND id=? LIMIT 1' );
+			$insert = $_db->prepare( 'UPDATE Post SET permalink=?,title=?,lastEdited=DATE(?) WHERE rowType=? AND id=? LIMIT 1' );
 			$insert->execute( [ $media->permalink, $media->title, time(), 'media', $action->id ] );
-			$db->commit();
+			$_db->commit();
 		} catch(Exception $e) {
-			if( $db->inTransaction() )
-				$db->rollBack();
+			if( $_db->inTransaction() )
+				$_db->rollBack();
 			$error[] =  $e->getMessage();
 		}
-		$response['uiValid'] = $valid;
+		$json['uiValid'] = $valid;
 		if( isset($error[0]) ) {
-			$response['success'] = false;
-			$response['message'] = implode( PHP_EOL, $error );
+			$json['success'] = false;
+			$json['message'] = implode( PHP_EOL, $error );
 		} else {
-			$response['success'] = true;
+			$json['success'] = true;
 		}
 		unset( $error, $valid );
 		break;
@@ -210,27 +210,27 @@ switch( $action->action ) {
 					unset($gdImage);
 				}
 				$mUpload->meta = json_encode($mUpload->meta);
-				$mUpload->uploaded = $mUpload->modified = time();
+				$mUpload->uploaded = $mUpload->lastEdited = time();
 				try {
-					$db->beginTransaction();
+					$_db->beginTransaction();
 					if( false && Post::findId( $mUpload->permalink ) )
 						throw new Exception( '"%1s" already exists' );
-					$insert = $db->prepare( 'REPLACE INTO Post (author, title, permalink, mimeType, posted, modified, rowType, status) VALUES (?,?,?,?,DATE(?),DATE(?),?,?)' );
-					$insert->execute( [ $_login->userId, $mUpload->title, $mUpload->permalink, $mUpload->mimeType, $mUpload->uploaded, $mUpload->modified, 'media', 'public' ] );
-					$mUpload->id = parseInt( $db->lastInsertId() );
+					$insert = $_db->prepare( 'REPLACE INTO Post (author, title, permalink, mimeType, datePosted, lastEdited, rowType, status) VALUES (?,?,?,?,DATE(?),DATE(?),?,?)' );
+					$insert->execute( [ $_usr->id, $mUpload->title, $mUpload->permalink, $mUpload->mimeType, $mUpload->uploaded, $mUpload->lastEdited, 'media', 'public' ] );
+					$mUpload->id = parseInt( $_db->lastInsertId() );
 					
-					$insert = $db->prepare( 'REPLACE INTO PostMeta (postId, metaKey, metaValue) VALUES (?,?,?)' );
+					$insert = $_db->prepare( 'REPLACE INTO PostMeta (postId, metaKey, metaValue) VALUES (?,?,?)' );
 					$insert->execute( [ $mUpload->id, 'media_metadata', $mUpload->meta ] );
-					$db->commit();
+					$_db->commit();
 					
 					$entry = $mUpload->id;
 				} catch( Exception $e ) {
-					if( $db->inTransaction() )
-						$db->rollBack();
+					if( $_db->inTransaction() )
+						$_db->rollBack();
 					throw $e;
 				}
 			} catch( Exception $e ) {
-				$response['message'] = $e->getMessage();
+				$json['message'] = $e->getMessage();
 				if( $e->getCode() !== ERR_PRE_UPLOAD ) {
 					$srcFile = glob( ABSPATH . DIR_UPLOAD . $srcBody . '*' );
 					foreach( $srcFile as $tmp ) {
@@ -245,11 +245,11 @@ switch( $action->action ) {
 		$numFiles = array_filter( $uploads, 'notEmpty' );
 		$numFiles = count($numFiles);
 		$errFiles = $allFiles - $numFiles;
-		$response['success'] = $errFiles === 0;
-		$response['message'] = $response['message'] ?? '';
-		$response['message'] = sprintf( '%d/%d uploaded succesfully. %s', $numFiles, $allFiles, $response['message'] );
+		$json['success'] = $errFiles === 0;
+		$json['message'] = $json['message'] ?? '';
+		$json['message'] = sprintf( '%d/%d uploaded succesfully. %s', $numFiles, $allFiles, $json['message'] );
 		break;
 	default:
 		die();
 }
-jsonOutput( $response );
+closeJson( $json );

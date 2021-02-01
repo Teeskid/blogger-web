@@ -16,8 +16,8 @@ function loadPostConstants() {
 	define( 'POST_STATUS_ENUM', [ 'public', 'draft' ] );
 }
 function postExists( int $postId ) : bool {
-	global $db;
-	$exists = $db->prepare( 'SELECT COUNT(id) FROM Post WHERE id=? AND rowType=? LIMIT 1' );
+	global $_db;
+	$exists = $_db->prepare( 'SELECT COUNT(id) FROM Post WHERE id=? AND rowType=? LIMIT 1' );
 	$exists->execute( [ $postId, 'post' ] );
 	$exists = parseInt( $exists->fetchColumn() );
 	if( $exists === 0 )

@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 define( 'REQUIRE_LOGIN', true );
-require_once( dirname(__FILE__) . '/Load.php' );
+require_once( __DIR__ . '/Load.php' );
 
 if( isPostRequest() ) {
 	// Errors
@@ -27,7 +27,7 @@ if( isPostRequest() ) {
 	}
 	$comment_author = (int) trim($_POST['author'] ?? 0);
 	$comment_postid = (int) trim($_POST['postid']);
-	$comment_parent = (int) trim($_POST['master']);
+	$comment_parent = (int) trim($_POST['term']);
 	$comment_redirect = trim($_POST['redirect']);
 	$comment_content = trim($_POST['content']);
 	$comment_ipaddr = trim($_SERVER['REMOTE_ADDR']);
@@ -42,7 +42,7 @@ if( isPostRequest() ) {
 	try {
 		if( count($error) !== 0)
 			throw new Exception( implode( '<br>', $error ) );
-		$my_query = $db->prepare_x( 'INSERT INTO %s (master,id,name,email,website,ipaddress,author,content,date,status) VALUES (?,?,?,?,?,?,?,?,?,?)', replies );
+		$my_query = $_db->prepare_x( 'INSERT INTO %s (term,id,name,email,website,ipaddress,author,content,date,status) VALUES (?,?,?,?,?,?,?,?,?,?)', replies );
 		$my_query->execute( [
 			$comment_parent,
 			$comment_postid,
@@ -55,17 +55,16 @@ if( isPostRequest() ) {
 			$comment_date,
 			$comment_status
 		] );
-		$comment_id = $db->lastInsertId();
+		$comment_id = $_db->lastInsertId();
 		$comment_redirect .= '#comment-'.$comment_id;
 	}
 	catch( Exception $e )
 	{
-		showError(
+		sendError(
 			sprintf(
 				'Sorry, but we cold not submit your comment due to an error: %s.<br><a href="javascript:history.back(1)">Go back</a>',
 				$e->getMessage()
-			),
-			'An error occured'
+			)
 		);
 	}
 	redirect( $comment_redirect );

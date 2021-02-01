@@ -1,5 +1,3 @@
 <?php
-$input = fopen('php://input','r');
-$stream = stream_get_contents( $input );
-fclose($input);
-echo $stream;
+// require_once( __DIR__ . '/Load.php' );
+die( json_encode( getallheaders()['Authorization'] ) );

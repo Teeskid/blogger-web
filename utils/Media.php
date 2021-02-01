@@ -10,13 +10,13 @@
  */
 class Media extends Post {
 	public static function getAvatar( string $size ) : string {
-		$default = sprintf( '%s%sthumbnail-%s.png', BASEPATH, DIR_IMAGES, $size );
+		$default = sprintf( '%s%sthumbnail-%s.png', BASEURI, DIR_IMAGES, $size );
 		return $default;
 	}
 	public static function getImage( $imageSrc, string $size ) : string {
 		if( isset($imageSrc->images->$size) ) {
 			$imageSrc = $imageSrc->images->$size;
-			$imageSrc = BASEPATH . DIR_UPLOAD . $imageSrc->fileName;
+			$imageSrc = BASEURI . DIR_UPLOAD . $imageSrc->fileName;
 		} else {
 			$imageSrc = self::getAvatar($size);
 		}

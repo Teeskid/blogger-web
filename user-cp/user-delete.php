@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
@@ -23,13 +23,13 @@ if(isset($_POST['submit'])) {
 			'UPDATE %s SET author=0 WHERE author=:id;',
 			'UPDATE %s SET author=0 WHERE author=:id;'
 		]), media, posts, replies);
-		$stmt = $db->prepare($stmt);
+		$stmt = $_db->prepare($stmt);
 		$stmt->execute(['id' => $user->id]);
 		$stmt = sprintf(implode([
 			'DELETE FROM %s WHERE id=:id LIMIT 1;',
 			'DELETE FROM %s WHERE adminId=:id;'
 		]), users, users_);
-		$stmt = $db->prepare($stmt);
+		$stmt = $_db->prepare($stmt);
 		$stmt->execute(['id' => $user->id]);
 
 	}
@@ -45,8 +45,8 @@ if(isset($_POST['submit'])) {
 }
 else
 {
-	$user = $db->quote((int) trim($_GET['id']));
-	$user = $db->query( 'SELECT id,userName FROM users WHERE id=$user' )->fetch();
+	$user = $_db->quote((int) trim($_GET['id']));
+	$user = $_db->query( 'SELECT id,userName FROM users WHERE id=$user' )->fetch();
 
 	if(!$user) {
 		not_found();
@@ -54,17 +54,15 @@ else
 }
 $error = implode('<br/>', $error);
 
-$_page = new Page( 'Delete User', USERPATH . '/user-cp-delete.php?id='.$user->id );
-include( 'html-header.php' );
+initHtmlPage( 'Delete User', 'user-cp-delete.php?id='.$user->id );
+include_once( __DIR__ . '/header.php' );
 ?>
-<nav>
-	<div class="nav-wrapper breadcrumb-wrapper">
-		<div class="col s12">
-			<a href="index.php" class="breadcrumb">Home</a>
-			<a href="user.php" class="breadcrumb">Users</a>
-			<a href="#" class="breadcrumb active">Delete</a>
-		</div>
-	</div>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item"><a href="users.php">Users</a></li>
+		<li class="breadcrumb-item active" aria-current="page">Delete</li>
+	</ol>
 </nav>
 <div class="card card-small">
 	<div class="card-body">
@@ -81,6 +79,6 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

@@ -9,51 +9,53 @@
  * @subpackage Administration 
  */
 /** Load blog boostrap files */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 /** Collect our screen options */
 $option = request( 'rowType', 'sort' );
 switch( $option->rowType ) {
-	case 'cat':
+	case Term::TYPE_CAT:
 		$termName = 'Category';
 		$termIcon = 'folder-open';
-		$catsList = Term::getList( 'cat' );
+		$catsList = Term::getList( Term::TYPE_CAT );
 		break;
-	case 'tag':
+	case Term::TYPE_TAG:
 		$termName = 'Tags';
 		$termIcon = 'labels';
 		$catsList = [];
 		break;
 	default:
-		redirect( BASEPATH . '/404.php' );
+		redirect( BASEURI . '/404.php' );
 }
-$_page = new Page( $termName, USERPATH . '/term.php?rowType=' . $option->rowType );
+initHtmlPage( $termName, 'term.php?rowType=' . $option->rowType );
 
-$paging = $db->prepare( 'SELECT COUNT(*) FROM Term WHERE rowType=?' );
+$paging = $_db->prepare( 'SELECT COUNT(*) FROM Term WHERE rowType=?' );
 $paging->execute( [ $option->rowType ] );
 $paging = parseInt( $paging->fetchColumn() );
 $paging = new Paging( 10, $paging );
 
-$termList = $db->prepare(
+$termList = $_db->prepare(
 	'SELECT a.id, IFNULL(b.title, ?) AS parentName, a.title, a.permalink, a.rowType, a.about, a.childCount FROM Term a ' .
-	'LEFT JOIN Term b ON b.id=a.master WHERE a.rowType=? ORDER BY IF(a.id=1, 555, IFNULL(a.master, a.id)) DESC, b.title ASC LIMIT ' . $paging->getLimit()
+	'LEFT JOIN Term b ON b.id=a.term WHERE a.rowType=? ORDER BY IF(a.id=1, 555, IFNULL(a.term, a.id)) DESC, b.title ASC LIMIT ' . $paging->getLimit()
 );
 $termList->execute( [ 'None', $option->rowType ] );
 $termList = $termList->fetchAll( PDO::FETCH_CLASS, 'Term' );
 $termList = array_values($termList);
 
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
-<ol class="breadcrumb">
-	<li><a href="index.php">Home</a></li>
-	<li class="active"><?=$termName?></li>
-</ol>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item active" aria-current="page"><?=$termName?></li>
+	</ol>
+</nav>
 <div class="page-header">
 	<h2><?=$termName?> <small><a href="#term" class="btn btn-primary btn-xs">Create</a></small></h2>
 </div>
 <div class="row">
-	<div class="col-xs-12 col-sm-5 col-md-4">
+	<div class="col-md-5 col-lg-4">
 		<form id="term">
 			<div class="card bg-light text-dark">
 				<div class="card-header">Create New</div>
@@ -67,16 +69,16 @@ include( 'html-header.php' );
 						<span class="help-block">The name is how it appears on your site.</span>
 					</div>
 <?php
-if( $option->rowType === 'cat' ) {
+if( $option->rowType === Term::TYPE_CAT ) {
 ?>
 					<div class="mb-3">
-						<label for="master" class="form-label">Parent Category</label>
-						<select class="form-select" id="master" name="master">
+						<label for="term" class="form-label">Parent Category</label>
+						<select class="form-select" id="term" name="term">
 							<option value="" selected>Standalone</option>
 <?php
 	foreach( $catsList as $entry ) {
 		$entry->id = (int) $entry->id;
-		if( $entry->id === 1 || $entry->master )
+		if( $entry->id === 1 || $entry->term )
 			continue;
 		$entry->title = escHtml($entry->title);
 		$entry->id = escHtml($entry->id);
@@ -97,7 +99,7 @@ if( $option->rowType === 'cat' ) {
 <?php
 } else {
 ?>
-					<input type="hidden" id="master" name="master" value="" />
+					<input type="hidden" id="term" name="term" value="" />
 					<input type="hidden" id="about" name="about" value="" />
 <?php
 }
@@ -110,7 +112,7 @@ if( $option->rowType === 'cat' ) {
 			</div>
 		</form>
 	</div>
-	<div class="col-xs-12 col-sm-7 col-md-8">
+	<div class="col-md-7 col-lg-8">
 <?php
 if( isset($termList[0]) ) {
 ?>
@@ -120,7 +122,7 @@ if( isset($termList[0]) ) {
 				<th>Name</th>
 				<th class="text-center" width="70"></th>
 <?php
-	if( $option->rowType === 'cat' )
+	if( $option->rowType === Term::TYPE_CAT )
 		echo '<th>Parent</th>';
 ?>
 				<th>Description</th>
@@ -156,7 +158,7 @@ if( isset($termList[0]) ) {
 ?>
 				</td>
 <?php
-		if( $option->rowType === 'cat' )
+		if( $option->rowType === Term::TYPE_CAT )
 			echo '<td>', $entry->parentName, '</td>';
 ?>
 				<td><?=$entry->about?></td>
@@ -168,15 +170,15 @@ if( isset($termList[0]) ) {
 } else {
 	echo '<div class="alert alert-info text-center">No data available</div>';
 }
-doHtmlPaging( $paging, $_page->path )
+doHtmlPaging( $paging, $HTML->path )
 ?>
 	</div>
 </div>
 <?php
-$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
-$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.term-form.js' );
-$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+addPageJsFile( 'js/async-form.js' );
+addPageJsFile( 'js/jquery.term-form.js' );
+addPageJsFile( 'js/jquery.action-button.js' );
+function onPageJsCode() {
 var termForm;
 $(document).ready(function(){
 	termForm = $("form#term").termEdit();
@@ -189,4 +191,4 @@ $(document).ready(function(){
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

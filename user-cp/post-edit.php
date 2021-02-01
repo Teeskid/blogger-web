@@ -8,7 +8,7 @@
  * @subpackage Administration
  */
 /** Load the blog bootstrap file */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 /** 
  * We check an validate an existing $action since page-new.php may have defined it already
  */
@@ -20,26 +20,26 @@ $action->redirect = $action->redirect ?? 'post.php';
 /** Find where we are goint to */
 switch( $action->action ) {
 	case 'modify':
-		$post = $db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
+		$post = $_db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
 		$post->execute( [ $action->id, 'post' ] );
 		if( $post->rowCount() === 0 )
-			redirect( BASEPATH . '/404.php' );
-		$post = $db->fetchClass( $post, 'Post' );
-		$_page = new Page( 'Edit Post', USERPATH . '/post-edit.php?action=modify&id=' . $post->id );
+			redirect( BASEURI . '/404.php' );
+		$post = $_db->fetchClass( $post, 'Post' );
+		initHtmlPage( 'Edit Post', 'post-edit.php?action=modify&id=' . $post->id );
 		break;
 	case 'create':
 		$post = new Post();
-		$_page = new Page( 'Create Post', USERPATH . '/post-new.php' );
+		initHtmlPage( 'Create Post', 'post-new.php' );
 		break;
 	default:
 		die();
 }
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 // Get the categories for select widget
-$postCategory = Term::getList( 'cat' );
+$postCategory = Term::getList( Term::TYPE_CAT );
 /** Find the attached tags */
 if( $post->id ) {
-	$postLabels = $db->prepare( 'SELECT TermLink.termId as id, Term.title FROM TermLink LEFT JOIN Term ON Term.id=TermLink.termId WHERE TermLink.postId=?' );
+	$postLabels = $_db->prepare( 'SELECT TermLink.termId as id, Term.title FROM TermLink LEFT JOIN Term ON Term.id=TermLink.termId WHERE TermLink.postId=?' );
 	$postLabels->execute( [ $post->id ] );
 	$postLabels = $postLabels->fetchAll();
 } else {
@@ -47,7 +47,7 @@ if( $post->id ) {
 }
 /** Find the thumbnail */
 if( $post->thumbnail ) {
-	$postThumbnail = $db->prepare( 'SELECT a.title, a.mimeType, b.metaValue AS image FROM Post a LEFT JOIN PostMeta b ON b.postId=a.id AND b.metaKey=? WHERE a.id=? LIMIT 1' );
+	$postThumbnail = $_db->prepare( 'SELECT a.title, a.mimeType, b.metaValue AS image FROM Post a LEFT JOIN PostMeta b ON b.postId=a.id AND b.metaKey=? WHERE a.id=? LIMIT 1' );
 	$postThumbnail->execute( [ 'media_metadata', $post->thumbnail ] );
 	$postThumbnail = $postThumbnail->fetch();
 	$postThumbnail->image = json_decode($postThumbnail->image);
@@ -65,11 +65,11 @@ $post->password = escHtml($post->password);
 $postLocked = checked( ! empty($post->password) );
 $postStatus = checked( $post->status=== 'draft' );
 
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div id="mediaDialog" class="modal" tabindex="-1" role="dialog"></div>
 <nav aria-labelled="breadcrumb">
-	<ol class="breadcrumb my-4">
+	<ol class="breadcrumb my-3">
 		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
 		<li class="breadcrumb-item"><a href="post.php">Post</a></li>
 		<li class="breadcrumb-item active" aria-current="page"><?=$action->action?></li>
@@ -77,10 +77,10 @@ include( 'html-header.php' );
 </nav>
 <form id="postForm">
 	<input type="hidden" name="id" value="<?=$post->id?>" />
-	<input type="hidden" name="jwt" value="<?=$_login->session?>" />
+	<input type="hidden" name="jwt" value="<?=$_usr->session?>" />
 	<input type="hidden" name="action" value="<?=$action->action?>" />
 	<div class="row">
-		<div class="col-xs-12 col-sm-7">
+		<div class="col-md-7">
 			<div class="mb-3">
 				<label for="title" class="form-label">Post Title</label>
 				<input type="text" class="form-control" name="title" id="title" value="<?=$post->title ?>" minlength="10" pattern="[\w\d\s]+" required />
@@ -104,7 +104,7 @@ include( 'html-header.php' );
 				<textarea class="form-control" name="content" id="content" rows="20"><?=$post->content?></textarea>
 			</div>
 		</div>
-		<div class="col-xs-12 col-sm-5">
+		<div class="col-md-5">
 			<div id="accordion" class="accordion mb-3" role="tablist" aria-multiselectable="true">
 				<div class="accordion-item">
 					<h4 id="headerA" class="accordion-header" role="tab">
@@ -217,14 +217,13 @@ include( 'html-header.php' );
 </form>
 <?php
 $action->redirect = json_encode($action->redirect);
-$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
-$_page->addPageMeta( Page::META_JS_FILE, 'js/post-form.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<EOS
+addPageJsFile( 'js/async-form.js' );
+addPageJsFile( 'js/post-form.js' );
+$HTML->addPageMeta( Page::META_JS_CODE, <<<EOS
 $(document).ready(function() {
-	$("form#postForm").postForm()
-		.asyncForm({ url: "../api/post-edit.php", target: $action->redirect });
+	var asyncForm = AsyncForm($("form#postForm").postForm().get(0), { url: "../api/post-edit.php", target: $action->redirect });
 		
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

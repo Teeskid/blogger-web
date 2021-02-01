@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
@@ -18,7 +18,7 @@ if(isset($_POST['submit']))
 	$admin->role  = parseInt($admin->role);
 	try
 	{
-		$stmt = $db->prepare( 'UPDATE users SET role=? WHERE id=?' );
+		$stmt = $_db->prepare( 'UPDATE users SET role=? WHERE id=?' );
 		$stmt->execute([$admin->role, $admin->id]);
 	}
 	catch(Exception $e)
@@ -34,9 +34,9 @@ if(isset($_POST['submit']))
 else
 {
 
-	$admin = $db->quote((int) $_GET['id']);
-	$admin = $db->query( 'SELECT id,userName,role FROM users WHERE id=$admin LIMIT 1' );
-	$admin = $db->fetchClass($admin, 'Admin');
+	$admin = $_db->quote((int) $_GET['id']);
+	$admin = $_db->query( 'SELECT id,userName,role FROM users WHERE id=$admin LIMIT 1' );
+	$admin = $_db->fetchClass($admin, 'Admin');
 	if(!$admin){
 		header('location:'.getReturnUrl('404.php'));
 		exit;
@@ -46,13 +46,13 @@ $admin->role = parseInt($admin->role);
 
 $error = implode($error);
 
-$_page = new Page( 'User Profile', sprintf('/user-cp/user-cp-profile.php?id=%s', $admin->id) );
-$_page->meta = <<<META
+initHtmlPage( 'User Profile', sprintf('/user-cp/user-cp-profile.php?id=%s', $admin->id) );
+$HTML->meta = <<<META
 <script src="js/admin.js"></script>
 <link media="all" rel="stylesheet" href="css/admin.css" />
 META;
 
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div class="card">
 	<div class="card-body">
@@ -71,9 +71,9 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 $(document).ready(function(){
 	$("select#role").formSelect();
 });
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

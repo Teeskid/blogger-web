@@ -1,28 +1,62 @@
 <?php
 /**
  * Helper Functions
- * 
- * Functions for performing simple convertion and manipuulation
  * @package Sevida
  * @subpackage Utilities
  */
 /**
+ * Gets request object from php://input stream
+ * @param array $coreKeys
+ * @return object
+ */
+function getPayLoad() : object {
+	$payLoad = file_get_contents('php://input');
+	if( empty($payLoad) || ! is_object( $payLoad = json_decode($payLoad) ) )
+		$payLoad = (object) [];
+	return $payLoad;
+}
+/**
+ * Fills missing keys for object payload
+ * @param mixed $payLoad
+ * @param string... $coreKeys
+ */
+function fillPayLoad( &$payLoad, string ...$coreKeys ) {
+	foreach( $coreKeys as $key ) {
+		if( ! isset( $payLoad->$key ) ) {
+			$payLoad->$key = null;
+		}
+	}
+}
+/**
  * Collects login data from either session or as a request child variable
  * @return object|bool Returns a valid session or false which means there is no valid login data
  */
-function getLogin() {
-	$payLoad = $_SESSION['__LOGIN__'] ?? $_REQUEST['jwt'] ?? false;
-	if( ! $payLoad )
-		return $payLoad;
-	try {
-		$session = \Firebase\JWT\JWT::decode( $payLoad, LOGIN_KEY, [ 'HS256' ] );
-		if( ! $session )
-			throw new Exception();
-		$session = (object) [ 'userId' => $session->uid, 'session' => $session->sid, 'token' => $payLoad ];
-	} catch( Exception $e ) {
-		$session = false;
+function getUserLogin() {
+	if( ! defined('LOGIN_KEY') )
+		return false;
+	if( session_id() ) {
+		$userLogin = $_SESSION['__LOGIN__'] ?? $_COOKIE['__LOGIN__'] ?? false;
+	} elseif( defined('SE_JSON') ) {
+		$allHeaders = getallheaders();
+		if( isset($allHeaders['Authorization']) ) {
+			$userLogin = $allHeaders['Authorization'];
+			$userLogin = sscanf( $userLogin, 'Token %s' );
+			$userLogin = $userLogin[0] ?? false;
+		} else {
+			$userLogin = false;
+		}
+		unset($allHeaders);
 	}
-	return $session;
+	if( $userLogin !== false ) {
+		try {
+			$userLogin = \Firebase\JWT\JWT::decode( $userLogin, LOGIN_KEY, [ 'HS256' ] );
+			if( ! is_object($userLogin) )
+				throw new Exception( 'Authorizarion Failed' );
+		} catch( Exception $e ) {
+			$userLogin = false;
+		}
+	}
+	return $userLogin;
 }
 /**
  * Collects a redirect url via the _GET request params
@@ -35,9 +69,7 @@ function getLogin() {
 function getReturnUrl( string $default = null ) : string {
 	if( ! $default )
 		$default = 'index.php';
-	$ref = $_REQUEST['redirect'] ?? $_REQUEST['_ref'] ?? $default ;
-	$ref = trim( $ref );
-	return $ref;
+	return $_REQUEST['redirect'] ?? $default;
 }
 /**
  * Tells whether the request sent is sent via GET method
@@ -60,17 +92,6 @@ function isLocalServer() : bool {
 	return false;
 }
 /**
- * Checks user login status
- * @return bool true if the user is logged in as false if otherwise
- */
-function isLoggedIn() : bool {
-	global $_login;
-	$_login = getLogin(); 
-	if( $_login && password_verify( session_id(), $_login->session ) && $_login->userId !== 0 )
-		return true;
-	return false;
-}
-/**
  * Tells whether the request sent is sent via POST method
  * @return bool true if it is a POST request or false if otherwise
  */
@@ -83,7 +104,7 @@ function isPostRequest() : bool {
  * Tells if the item provided is an empty string, null or a boolean false
  * @return true if the item is empty or a false
  */
-function notEmpty( $item ) : bool{
+function notEmpty( $item ) : bool {
 	return ! empty( $item );
 }
 /**
@@ -95,38 +116,6 @@ function notEmpty( $item ) : bool{
 function parseInt( $int ) : int {
 	return ( (int ) $int );
 }
-/*
-function getParams( string $request ) : array {
-	$entries = parse_url($request);
-	$entries = trim( $entries['query'] ?? '' );
-	$entries = preg_split( '#&#', $entries );
-	$entries = array_filter( $entries, 'notEmpty' );
-	$request = [];
-	foreach( $entries as $index => $entry ) {
-		if( empty($entry) )
-			continue;
-		$entry = explode( '=', $entry, 2 );
-		$index = trim($entry[0]);
-		if( ! preg_match( '#^[\w_]+$#i', $index ) )
-			continue;
-		$entry = trim( $entry[1] ?? '' );
-		if( preg_match( '#%2F#i', $entry ) ) {
-			$entry = rawurldecode($entry);
-		} else {
-			$entry = urldecode($entry);
-			if( preg_match( '#[\#\\\']#i', $entry ) )
-				showError( 'Mod_Security', 'Malicious request detected' );
-			if( is_numeric($entry) && ! preg_match( '#^(year|month|day)$#', $index ) ) {
-				$entry = (int) $entry;
-			} elseif( $entry === 'true' || $entry === 'false' )
-				$entry = (bool) ( $entry === 'true' );
-		}
-		$request[$index] = $entry;
-	}
-	unset( $entries, $index, $entry );
-	return $request;
-}
-*/
 /**
  * Escapes any html tag in texts for security reasons
  * @param mixed $text The text to be purified
@@ -134,6 +123,16 @@ function getParams( string $request ) : array {
  */
 function escHtml( $text ) : string {
 	$text = htmlspecialchars( $text, ENT_HTML5 );
+	return $text;
+}
+/**
+ * Strips out single quote using PDO::quote, useful when using arrays in query
+ * @param string $text
+ * @return string
+ */
+function escQuote( string $text ) : string {
+	global $_db;
+	$text = $_db->quote( $text );
 	return $text;
 }
 /**
@@ -195,14 +194,13 @@ function washValue( $value ) {
  * @return array|mixed a single item or an object, depending on the input
  */
 function request( string ...$indexes ) {
-	$request = new Class(){};
+	$request = [];
 	foreach( $indexes as $index ) {
-		$value = $_REQUEST[$index] ?? $_FILES[$index] ?? false;
-		if( ! $value ) {
-			$request->$index = null;
-			continue;
-		}
-		if( is_array($value) ) {
+		if( isset($_REQUEST[$index]) ) {
+			$value = $_REQUEST[$index];
+			$value = is_array($value) ? array_map( 'washValue', $value ) : washValue($value);
+		} elseif( isset($_FILES[$index]) ) {
+			$value = $_FILES[$index];
 			if( isset($value['tmp_name']) ) {
 				if( is_array($value['name']) ) {
 					$max = count($value['name']);
@@ -213,19 +211,19 @@ function request( string ...$indexes ) {
 							$xmp[$x][$val] = $value[$val][$x] ?? null;
 					$value = $xmp;
 					unset($xmp);
+				} else {
+					$value = array_map( 'washValue', $value );
 				}
-			} else {
-				$value = array_map('washValue', $value);
 			}
 		} else {
-			$value = washValue($value);
+			$value = null;
 		}
-		$request->$index = $value;
+		$request[$index] = $value;
 		unset( $_GET[$index], $_POST[$index], $_REQUEST[$index], $_FILES[$index], $index, $value );
 	}
 	if( ! isset($indexes[1]) ) {
 		$indexes = $indexes[0];
-		$request = $request->$indexes;
+		$request = $request[$indexes];
 	}
 	return $request;
 }
@@ -240,4 +238,14 @@ function parseDate( string $theDate ) : object {
 	$theDate->month = str_pad( $theDate->month, 2, "0", STR_PAD_LEFT );
 	$theDate->day = str_pad( $theDate->day, 2, "0", STR_PAD_LEFT );
 	return $theDate;
+}
+/**
+ * Prints out a json-serialized response of the object
+ * @param Json $json
+ */
+function closeJson( Json $json ) {
+	jsonHeader();
+	@ob_clean();
+	echo json_encode($json);
+	exit;
 }

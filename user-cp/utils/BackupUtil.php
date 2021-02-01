@@ -14,7 +14,7 @@ require ABSPATH . _INC_ . 'class-upLoad.php';
 define('PATH_BACKUP', ABSPATH.'/storage/backup/');
 
 function create_backup($o = '*', &$error = []) {
-	global $db;
+	global $_db;
 	$zip = new_zip_archive(true);
 	if($zip === false) {
 		$error[] = sprintf('Failed to create zip file: %s', $zip->error);
@@ -60,8 +60,8 @@ function create_backup($o = '*', &$error = []) {
 		}
 		else {
 			$delete = array_map('unlink', $delete);
-			$stmt = $db->exec("DELETE FROM $db->meta WHERE metaKey IN ('last_backup','last_backup_date')");
-			$stmt = $db->prepare( 'INSERT INTO $db->meta (metaKey,val) VALUES (?,?)' );
+			$stmt = $_db->exec("DELETE FROM $_db->meta WHERE metaKey IN ('last_backup','last_backup_date')");
+			$stmt = $_db->prepare( 'INSERT INTO $_db->meta (metaKey,val) VALUES (?,?)' );
 			$stmt->execute(['last_backup', json_encode(['filename' => $zip->name, 'date' => formatDate(time())])]);
 			return $zip->name;
 		}
@@ -82,27 +82,27 @@ function new_zip_archive() {
 }
 /* MANIFEST */
 function backup_manifest(&$backup, &$zip) {
-	global $db, $_user;
+	global $_db, $_user;
 	$backup->manifest = $backup->manifest ?? [];
-	$backup->manifest['categories_inId'] = $db->query( 'SELECT b.uri AS x, a.uri AS y FROM $db->terms a LEFT JOIN $db->terms b ON a.inId=b.id WHERE a.inId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['categories_id'] = $db->query( 'SELECT c.uri AS x, b.uri AS y FROM $db->TermMeta a LEFT JOIN $db->terms b ON a.category=b.id LEFT JOIN media c ON a.metaValue=c.id WHERE a.prop='_media_id' AND a.val > 0 AND b.id > 0 AND c.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['posts_inId'] = $db->query( 'SELECT b.uri AS x, a.uri AS y FROM Post a LEFT JOIN posts b ON a.inId=b.id WHERE a.inId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['posts_author'] = $db->query( 'SELECT b.userName AS x, a.uri AS y FROM Post a LEFT JOIN users b ON a.author=b.id WHERE a.author > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['posts_category'] = $db->query( 'SELECT b.uri AS x, a.uri AS y FROM Post a LEFT JOIN $db->terms b ON a.category=b.id WHERE a.category > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['posts_id'] = $db->query( 'SELECT c.uri AS x, b.uri AS y FROM Post_ a LEFT JOIN posts b ON a.id=b.id LEFT JOIN media c ON a.metaValue=c.id WHERE a.prop='_media_id' AND a.val > 0 AND b.id > 0 AND c.id > 0' ->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['media_uploader'] = $db->query( 'SELECT b.userName AS x, a.uri AS y FROM media a LEFT JOIN users b ON a.uploader=b.id WHERE a.uploader > 0 AND b.id > 0' ->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['media_postId'] = $db->query( 'SELECT c.uri, b.uri FROM media_ a LEFT JOIN media b ON a.id=b.id LEFT JOIN posts c ON a.metaValue=c.id WHERE a.prop='_post_id' AND a.val > 0 AND b.id > 0 AND c.id > 0' ->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['replies_inId'] = $db->query( 'SELECT CONCAT_WS('|', b.author, b.date), CONCAT_WS('|', a.author, a.date) FROM replies a LEFT JOIN replies b ON a.inId=b.id WHERE a.inId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
-	$backup->manifest['replies_postId'] = $db->query( 'SELECT b.uri, CONCAT_WS('|', a.author, a.date) FROM replies a LEFT JOIN posts b ON a.postId=b.id WHERE a.postId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['categories_inId'] = $_db->query( 'SELECT b.uri AS x, a.uri AS y FROM $_db->terms a LEFT JOIN $_db->terms b ON a.inId=b.id WHERE a.inId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['categories_id'] = $_db->query( 'SELECT c.uri AS x, b.uri AS y FROM $_db->TermMeta a LEFT JOIN $_db->terms b ON a.category=b.id LEFT JOIN media c ON a.metaValue=c.id WHERE a.prop='_media_id' AND a.val > 0 AND b.id > 0 AND c.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['posts_inId'] = $_db->query( 'SELECT b.uri AS x, a.uri AS y FROM Post a LEFT JOIN posts b ON a.inId=b.id WHERE a.inId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['posts_author'] = $_db->query( 'SELECT b.userName AS x, a.uri AS y FROM Post a LEFT JOIN users b ON a.author=b.id WHERE a.author > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['posts_category'] = $_db->query( 'SELECT b.uri AS x, a.uri AS y FROM Post a LEFT JOIN $_db->terms b ON a.category=b.id WHERE a.category > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['posts_id'] = $_db->query( 'SELECT c.uri AS x, b.uri AS y FROM Post_ a LEFT JOIN posts b ON a.id=b.id LEFT JOIN media c ON a.metaValue=c.id WHERE a.prop='_media_id' AND a.val > 0 AND b.id > 0 AND c.id > 0' ->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['media_uploader'] = $_db->query( 'SELECT b.userName AS x, a.uri AS y FROM media a LEFT JOIN users b ON a.uploader=b.id WHERE a.uploader > 0 AND b.id > 0' ->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['media_postId'] = $_db->query( 'SELECT c.uri, b.uri FROM media_ a LEFT JOIN media b ON a.id=b.id LEFT JOIN posts c ON a.metaValue=c.id WHERE a.prop='_post_id' AND a.val > 0 AND b.id > 0 AND c.id > 0' ->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['replies_inId'] = $_db->query( 'SELECT CONCAT_WS('|', b.author, b.date), CONCAT_WS('|', a.author, a.date) FROM replies a LEFT JOIN replies b ON a.inId=b.id WHERE a.inId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
+	$backup->manifest['replies_postId'] = $_db->query( 'SELECT b.uri, CONCAT_WS('|', a.author, a.date) FROM replies a LEFT JOIN posts b ON a.postId=b.id WHERE a.postId > 0 AND b.id > 0' )->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
 	$backup->manifest = array_filter($backup->manifest, function($e){
 		return (empty($e) === false);
 	});
 }
 /* CATEGORIES */
 function backup_categories(&$backup, &$zip) {
-	global $db, $_user;
-	$meta = $db->query( 'SELECT category,metaKey,val FROM $db->TermMeta WHERE metaKey NOT IN ('_media_id')' )->fetchAll(PDO::FETCH_GROUP);
-	$backup->categories = $db->query( 'SELECT id,title,uri,state FROM $db->terms' )->fetchAll(PDO::FETCH_ASSOC);
+	global $_db, $_user;
+	$meta = $_db->query( 'SELECT category,metaKey,val FROM $_db->TermMeta WHERE metaKey NOT IN ('_media_id')' )->fetchAll(PDO::FETCH_GROUP);
+	$backup->categories = $_db->query( 'SELECT id,title,uri,state FROM $_db->terms' )->fetchAll(PDO::FETCH_ASSOC);
 	$backup->categories = array_map(function($entry) use($meta) {
 		if(isset($meta[$entry['id']]))
 			$entry['meta'] = $meta[$entry['id']];
@@ -114,10 +114,10 @@ function backup_categories(&$backup, &$zip) {
 }
 /* POSTS */
 function backup_posts(&$backup, &$zip) {
-	global $db, $_user;
+	global $_db, $_user;
 	backup_categories($backup, $zip);
-	$meta = $db->query( 'SELECT postId,metaKey,val FROM Post_ WHERE metaKey NOT IN ('_media_id')' )->fetchAll(PDO::FETCH_GROUP);
-	$backup->posts = $db->query( 'SELECT id,uri,title,excerpt,content,labels,state FROM Post ORDER BY id ASC' )->fetchAll(PDO::FETCH_ASSOC);
+	$meta = $_db->query( 'SELECT postId,metaKey,val FROM Post_ WHERE metaKey NOT IN ('_media_id')' )->fetchAll(PDO::FETCH_GROUP);
+	$backup->posts = $_db->query( 'SELECT id,uri,title,excerpt,content,labels,state FROM Post ORDER BY id ASC' )->fetchAll(PDO::FETCH_ASSOC);
 	$backup->posts = array_map(function(&$entry) use($meta) {
 		if(isset($meta[$entry['id']]))
 			$entry['meta'] = $meta[$entry['id']];
@@ -130,9 +130,9 @@ function backup_posts(&$backup, &$zip) {
 }
 /* REPLIES */
 function backup_replies(&$backup, &$zip) {
-	global $db, $_user;
-	$backup->replies = $db->query( 'SELECT content,date,MD5(CONCAT(author,date)) AS pending_id,state FROM replies ORDER BY id,inId ASC' )->fetchAll(PDO::FETCH_ASSOC);
-	$meta = $db->query( 'SELECT replyId,metaKey,val FROM replies_' )->fetchAll(PDO::FETCH_GROUP);
+	global $_db, $_user;
+	$backup->replies = $_db->query( 'SELECT content,date,MD5(CONCAT(author,date)) AS pending_id,state FROM replies ORDER BY id,inId ASC' )->fetchAll(PDO::FETCH_ASSOC);
+	$meta = $_db->query( 'SELECT replyId,metaKey,val FROM replies_' )->fetchAll(PDO::FETCH_GROUP);
 	$backup->replies = array_map(function(&$entry) use($meta) {
 		$entry['state'] = parseInt($entry['state']);
 		return $entry;
@@ -142,9 +142,9 @@ function backup_replies(&$backup, &$zip) {
 
 /* PAGES */
 function backup_PAGEs(&$backup, &$zip) {
-	global $db, $_user;
-	$meta = $db->query( 'SELECT id,metaKey,val FROM $db->pages_ WHERE metaKey NOT IN ('_media_id')' )->fetchAll(PDO::FETCH_GROUP);
-	$backup->pages = $db->query( 'SELECT id,uri,title,content FROM pages ORDER BY id ASC' ->fetchAll(PDO::FETCH_ASSOC);
+	global $_db, $_user;
+	$meta = $_db->query( 'SELECT id,metaKey,val FROM $_db->pages_ WHERE metaKey NOT IN ('_media_id')' )->fetchAll(PDO::FETCH_GROUP);
+	$backup->pages = $_db->query( 'SELECT id,uri,title,content FROM pages ORDER BY id ASC' ->fetchAll(PDO::FETCH_ASSOC);
 	$backup->pages = array_map(function(&$entry) use($meta) {
 		if(isset($meta[$entry['id']]))
 			$entry['meta'] = $meta[$entry['id']];
@@ -155,9 +155,9 @@ function backup_PAGEs(&$backup, &$zip) {
 }
 /* MEDIA */
 function backup_media(&$backup, &$zip) {
-	global $db;
-	$meta = $db->query( 'SELECT id,metaKey,val FROM media_ WHERE metaKey NOT IN ('_post_id','drawables')' ->fetchAll(PDO::FETCH_GROUP);
-	$backup->media = $db->query( 'SELECT id,filename,uploadDate FROM media ORDER BY id ASC' ->fetchAll(PDO::FETCH_ASSOC);
+	global $_db;
+	$meta = $_db->query( 'SELECT id,metaKey,val FROM media_ WHERE metaKey NOT IN ('_post_id','drawables')' ->fetchAll(PDO::FETCH_GROUP);
+	$backup->media = $_db->query( 'SELECT id,filename,uploadDate FROM media ORDER BY id ASC' ->fetchAll(PDO::FETCH_ASSOC);
 	$backup->media = array_map(function(&$entry) use($meta, $zip) {
 		if(isset($meta[$entry['id']]))
 			$entry['meta'] = $meta[$entry['id']];
@@ -179,7 +179,7 @@ function backup_media(&$backup, &$zip) {
 function restore_categories(&$zip, &$queries, &$values)
 {
 	// @categories
-	global $db;
+	global $_db;
 	$entrys = json_decode($zip->getFromName('categories.json'));
 	if($entrys === null || count($entrys) === 0) {
 		return;
@@ -201,13 +201,13 @@ function restore_categories(&$zip, &$queries, &$values)
 		$entry = null;
 	}
 	$insert = implode(',', $insert);
-	$insert = sprintf('REPLACE INTO %s (uri,title,state) VALUES %s', $db->terms, $insert);
+	$insert = sprintf('REPLACE INTO %s (uri,title,state) VALUES %s', $_db->terms, $insert);
 	$insert = array_push($queries, $insert);
 	$values = array_merge($values, $array);
 	$insert = $array = null;
 	if($arra2) {
 		$inser2 = implode(',', $inser2);
-		$inser2 = sprintf('REPLACE INTO %s (category,metaKey,val) VALUES %s', $db->TermMeta, $inser2);
+		$inser2 = sprintf('REPLACE INTO %s (category,metaKey,val) VALUES %s', $_db->TermMeta, $inser2);
 		$inser2 = array_push($queries, $inser2);
 		$values = array_merge($values, $arra2);
 		$inser2 = $arra2 = null;
@@ -217,7 +217,7 @@ function restore_categories(&$zip, &$queries, &$values)
 function restore_posts(&$zip, &$queries, &$values)
 {
 	// @posts
-	global $db;
+	global $_db;
 	$entrys = json_decode($zip->getFromName('posts.json'));
 	if($entrys === null || count($entrys) === 0) {
 		return;
@@ -254,7 +254,7 @@ function restore_posts(&$zip, &$queries, &$values)
 function restore_replies(&$zip, &$queries, &$values)
 {
 	// @replies
-	global $db;
+	global $_db;
 	$entrys = json_decode($zip->getFromName('replies.json'));
 	if($entrys === null || count($entrys) === 0) {
 		return;
@@ -293,7 +293,7 @@ function restore_replies(&$zip, &$queries, &$values)
 function restore_PAGEs(&$zip, &$queries, &$values)
 {
 	// @pages
-	global $db;
+	global $_db;
 	$entrys = json_decode($zip->getFromName('pages.json'));
 	if($entrys === null || count($entrys) === 0) {
 		return;
@@ -321,7 +321,7 @@ function restore_PAGEs(&$zip, &$queries, &$values)
 	$insert = $array = null;
 	if($arra2) {
 		$inser2 = implode(',', $inser2);
-		$inser2 = sprintf('REPLACE INTO %s (id,metaKey,val) VALUES %s', $db->pages_, $inser2);
+		$inser2 = sprintf('REPLACE INTO %s (id,metaKey,val) VALUES %s', $_db->pages_, $inser2);
 		$inser2 = array_push($queries, $inser2);
 		$values = array_merge($values, $arra2);
 		$inser2 = $arra2 = null;
@@ -331,7 +331,7 @@ function restore_media(&$zip, &$queries, &$values)
 {
 	global $error;
 	// @media
-	global $db;
+	global $_db;
 	$entrys = json_decode($zip->getFromName('jquery.gallery.json'));
 	if($entrys === null || count($entrys) === 0) {
 		return;
@@ -369,7 +369,7 @@ function restore_media(&$zip, &$queries, &$values)
 }
 function restore_manifest(&$zip, &$queries, &$values)
 {
-	global $db, $_user;
+	global $_db, $_user;
 	$entry = json_decode($zip->getFromName('manifest.json'));
 	if($entry === null || count($entry) === 0) {
 		return;
@@ -379,7 +379,7 @@ function restore_manifest(&$zip, &$queries, &$values)
 	foreach($entry->categories_inId as $x => $y) {
 		$update = array_fill(0, count($y), '?');
 		$update = implode(',', $update);
-		$update = sprintf('UPDATE %s SET inId=(SELECT category FROM %s WHERE metaKey=? AND metaValue=?) WHERE uri IN (%s)', $db->terms, $db->TermMeta, $update);
+		$update = sprintf('UPDATE %s SET inId=(SELECT category FROM %s WHERE metaKey=? AND metaValue=?) WHERE uri IN (%s)', $_db->terms, $_db->TermMeta, $update);
 		array_push($queries, $update);
 		array_push($values, $x);
 		foreach($y as $z) {
@@ -439,7 +439,7 @@ function restore_manifest(&$zip, &$queries, &$values)
 	foreach($entry->posts_category as $x => $y) {
 		$update = array_fill(0, count($y), '?');
 		$update = implode(',', $update);
-		$update = sprintf('UPDATE %s SET category=(SELECT id FROM %s WHERE uri=?) WHERE uri IN (%s)', posts, $db->terms, $update);
+		$update = sprintf('UPDATE %s SET category=(SELECT id FROM %s WHERE uri=?) WHERE uri IN (%s)', posts, $_db->terms, $update);
 		array_push($queries, $update);
 		array_push($values, $x);
 		foreach($y as $z) {
@@ -463,7 +463,7 @@ function restore_manifest(&$zip, &$queries, &$values)
 	foreach($entry->categories_id as $x => $y) {
 		$insert = array_fill(sprintf('(SELECT id FROM %s WHERE uri=?),?,?)', media), 0, count($y));
 		$insert = implode(',', $insert);
-		$insert = sprintf('REPLACE INTO %s (category,metaKey,val) VALUES %s', $db->TermMeta, $insert);
+		$insert = sprintf('REPLACE INTO %s (category,metaKey,val) VALUES %s', $_db->TermMeta, $insert);
 		array_push($queries, $insert);
 		foreach($y as $z) {
 			array_push($values, $x, '_media_id', $z);
@@ -512,18 +512,18 @@ function restore_bulk_query($x, $y)
 		return true;
 	}
 	$x = implode(';', $x);
-	global $db;
+	global $_db;
 	try
 	{
-		$db->beginTransaction();
-		$x = $db->prepare($x);
+		$_db->beginTransaction();
+		$x = $_db->prepare($x);
 		$x->execute($y);
-		$db->commit();
+		$_db->commit();
 		return true;
 	}
 	catch(Exception $e)
 	{
-		$db->rollBack();
+		$_db->rollBack();
 		return false;
 	}
 }

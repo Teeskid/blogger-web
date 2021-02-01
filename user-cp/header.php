@@ -1,31 +1,14 @@
 <?php
 /**
  * HTML Header File
- *  
  * @package Sevida
  * @subpackage Administration
  */
-/** Incase the page object was not instatiated */
-if( ! ( isset($_page) && is_object($_page) ) ) {
-	ob_clean();
-	objectNotFound();
-	exit;
-}
-if( LOGGED_IN ) {
-	$fields = User::getFields( 'email', 'userName' );
-	$upIcon = 'home';
-	if( strpos( $_page->path, 'index.php' ) !== false )
-		$upLink = '#';
-	else
-		$upLink = USERPATH . '/index.php';
-} else {
-	$upIcon = 'times';
-	$upLink = BASEPATH . '/index.php';
-}
-/**
- * Create the right header for the page. It can be converted into a source code by
- * just adding a single get parameter "src"
- */
+if( ! defined('ABSPATH') )
+	die();
+if( isset($_usr) )
+	$_usr->showName = User::getFields( $_usr->id, 'IFNULL(userName,IFNULL(fullName,email)) AS userName' );
+// Source code viewer
 if( isset($_GET['src']) )
 	header( 'Content-Type: text/plain;charset=utf-8', true );
 else {
@@ -39,14 +22,14 @@ else {
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<meta name="robots" content="noindex,nofollow" />
 	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<title><?=escHtml($cfg->blogName.' » '.$_page->title)?></title>
-	<link rel="canonical" href="<?=escHtml($_page->url)?>" />
-	<link rel="icon" href="<?=USERPATH.'/favicon.png'?>" type="image/png" />
+	<title><?=escHtml( $_cfg->blogName . ' » ' . $HTML->title )?></title>
+	<link rel="canonical" href="<?=escHtml( BASEURI . $HTML->path )?>" />
+	<link rel="icon" href="<?=( 'favicon.png' )?>" type="image/png" />
 	<?php
 	/** Include the local files in debig mode */
 	if( SE_DEBUG ) {
 	?>
-	<link rel="stylesheet" href="<?=USERPATH?>/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="<?=USERURI?>/css/bootstrap.min.css" />
 	<?php
 	} else {
 	?>
@@ -56,23 +39,20 @@ else {
 	<?php
 	}
 	?>
-	<link rel="stylesheet" href="<?=BASEPATH?>/css/fa-all.min.css" />
-	<link rel="stylesheet" href="<?=BASEPATH?>/css/fa-brands.min.css" />
-	<link rel="stylesheet" href="<?=BASEPATH?>/css/fa-solid.min.css" />
-	<link rel="stylesheet" href="<?=USERPATH?>/css/styles.css" />
+	<link rel="stylesheet" href="<?=BASEURI?>/css/fa-all.min.css" />
+	<link rel="stylesheet" href="<?=BASEURI?>/css/fa-brands.min.css" />
+	<link rel="stylesheet" href="<?=BASEURI?>/css/fa-solid.min.css" />
+	<link rel="stylesheet" href="<?=USERURI?>/css/styles.css" />
 	<?php
-	// Include additional css files required by the page
-	doHeadCssInc();
-	echo PHP_EOL;
-	// Output additional css stylesheet assigned by the page
-	doHeadCssTag();
+	doPageCssFiles();
+	doPageCssTags();
 	?>
 	<script>
 	(function(html){
 		html.className = html.className.replace(/\bno-js\b/,"js");
 	})(document.documentElement);
-	const BASE_URL = <?=json_encode(BASE_URL)?>;
-	const BASEPATH = <?=json_encode(BASEPATH)?>;
+	const ROOTURL = <?=json_encode(ROOTURL)?>;
+	const BASEURI = <?=json_encode(BASEURI)?>;
 	</script>
 	<!--[if lt IE 9]>
 	<script src="../js/html5.js?ver=3.7.3" type="text/javascript"></script>
@@ -87,25 +67,24 @@ else {
 	<![}]-->
 	<?php
 	/** Output additional meta tags required by the page */
-	doHeadMetaTag()
+	doPageMetaTags()
 	?>
 </head>
 <body class="bg-light pb-0">
+	<?php
+	if( isset($_usr) ) {
+	?>
 	<header>
 		<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
 			<div class="container-fluid">
-				<a class="navbar-brand" href="<?=$upLink?>"><?php echo icon( $upIcon . ' ms-1 me-1' ), ' ', escHtml($cfg->blogName)?></a>
+				<a class="navbar-brand" href="<?=( 'index.php' )?>"><?php echo icon( 'home ms-1 me-2' ), ' ', escHtml($_cfg->blogName)?></a>
 				<button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#mainMenu" aria-expanded="false">
 					<span class="navbar-toggler-icon"></span>
 				</button>
 				<div class="collapse navbar-collapse" id="mainMenu">
 					<ul class="navbar-nav me-auto mb-2 mb-lg-0">
-						<?php
-						/** For logged in users only */
-						if( LOGGED_IN ) {
-						?>
 						<li class="nav-item">
-							<a class="nav-link" href="<?=BASEPATH?>/" target="_blank"><?=icon('external-link-alt')?>  Visit Site</a>
+							<a class="nav-link" href="<?=BASEURI?>/" target="_blank"><?=icon('external-link-alt')?>  Visit Site</a>
 						</li>
 						<li class="nav-item dropdown">
 							<a class="nav-link dropdown-toggle" id="menuLinks" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?=icon('th-large')?> Menu</a>
@@ -131,18 +110,18 @@ else {
 							</ul>
 						</li>
 						<li class="nav-item dropdown">
-							<a class="nav-link dropdown-toggle" id="userLinks" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?=$fields->userName?></a>
+							<a class="nav-link dropdown-toggle" id="userLinks" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?=$_usr->showName?></a>
 							<ul class="dropdown-menu" aria-labelledby="userLinks">
-								<li><a class="dropdown-item" href="profile.php?id=<?=$_login->userId?>"><?=icon('user')?> My Profile</a></li>
-								<li><a class="dropdown-item" href="logout.php"><?=icon('sign-out-alt')?> Logout</a></li>
+								<li><a class="dropdown-item" href="user-edit.php?id=<?=$_usr->id?>"><?=icon('user')?> My Profile</a></li>
+								<li><a class="dropdown-item" href="logout.php" onclick="if(window.authToken) delete sessionStorage.authToken;"><?=icon('sign-out-alt')?> Logout</a></li>
 							</ul>
 						</li>
-						<?php
-						}
-						?>
 					</ul>
 				</div>
 			</div>
 		</nav>
 	</header>
+	<?php
+	}
+	?>
 	<main class="container">

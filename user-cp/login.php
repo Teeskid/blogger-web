@@ -1,7 +1,6 @@
 <?php
 /**
  * User Login and Password Reset Page
- *
  * @package Sevida
  * @subpackage: Administration
  */
@@ -12,95 +11,106 @@
 define( 'SE_LOGIN', true );
 
 // Loads the blog bootstrap file
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
+require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
-/** If the user is logged in, then no need to display a login page. Hence redirect to home */
-if( LOGGED_IN )
+if( isset($_usr) )
 	redirect( getReturnUrl( 'index.php' ) );
 
-/** @var string What part of the page we a accessing  */
 $action = request( 'action' );
 if( ! in_array( $action, [ 'login', 'lostpass', 'recover' ] ) )
 	$action = 'login';
 
 switch( $action ) {
-	/** Handle the recover password request */
 	case 'recover':
-		/** @var object The token we sent to the user's email address */
-		$login = request( 'token' );
+		$authToken = request('token');
+		/** Let's try decrypting the token for validity sake */
 		try {
-			$login = \Firebase\JWT\JWT::decode( $login, AUTH_KEY, [ 'HS256' ] );
-			if( ! $login )
+			if( ! $authToken )
 				throw new Exception( 'Invalid Token' );
-			// Tokens expire after five mintes [-300 = -60 x 5]
-			if( ( $login->iat - time() ) < -300 )
+			$authToken = \Firebase\JWT\JWT::decode( $authToken, AUTH_KEY, [ 'HS256' ] );
+			if( ! is_object($authToken) )
+				throw new Exception( 'Invalid Token' );
+			if( $authToken->iss !== ROOTURL || $authToken->aud !== ROOTURL )
+				throw new Exception( 'Token Compromised' );
+			$authToken->iat = (int) $authToken->iat;
+			if( parseInt( time() - $authToken->iat ) > 300 )
 				throw new Exception( 'Expired Token' );
+			$authToken->userId = (int) $authToken->userId;
+			$authToken->aut = (int) $authToken->aut;
+			if( ! $authToken->userId || ! $authToken->aut )
+				throw new Exception( 'Invalid Token' );
 		} catch( Exception $e ) {
-			// An error occured, we can not continue with the operation
-			showError( 'Authenticated Failed', 'The reset password has either expired or is totally invalid, please consider resending a new reset link.<br><a href="?action=lostpass" class="">Retry Sending</a>' );
+			sendError(
+				'The link has either expired or is totally invalid, please consider resending a new reset link.<br><a href="?action=lostpass" class="">Retry Sending</a>',
+				'Invalid Token', 501
+			);
 		}
-		/** Escape html tags */
-		$login->uid = escHtml($login->uid);
-		$login->aut = escHtml($login->aut);
+		initHtmlPage( 'Create A New Password', 'login.php?action=recover' );
 		break;
+	case 'lostpass':
+		initHtmlPage( 'Find Your Account', 'login.php?action=lostpass' );
+		break;
+	default:
+		initHtmlPage( 'Login', 'login.php?action=login' );
 }
-require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
-
-$_page = new Page( 'Login', USERPATH . '/login.php?action=' . $action );
-$_page->addPageMeta( Page::META_CSS_FILE, 'css/compact.css' );
-require( 'html-header.php' );
+addPageCssFile( 'css/compact.css' );
+require_once( __DIR__ . '/header.php' );
 ?>
 <div class="col-sm-7 col-md-6 col-lg-5 col-xl-4 mb-3 mx-auto">
 	<div id="logo"><a href="http://techify.ng/">Sevida</a></div>
-	<form id="loginForm" class="needs-validation" novalidate>
-		<input type="hidden" name="action" value="<?=escHtml($action)?>" />
+	<form id="loginForm" method="post" action="#">
+		<input type="hidden" name="action" value="<?=escHtml($action)?>" id="action" />
+		<input type="hidden" name="client" value="web" />
 		<div class="card bg-white text-dark mb-3">
 			<?php
 			switch( $action ) {
-				/** User login page */
 				case 'recover':
 			?>
-			<input type="hidden" name="userId" value="<?=$login->uid?>" />
-			<input type="hidden" name="authKey" value="<?=$login->aut?>" />
+			<h2 class="card-header">Create A New Password</h2>
 			<div class="card-body">
-				<h2 class="card-heading">Create A New Password</h2>
-				<div class="mb-3">
-					<label class="form-label" for="password">New Password</label>
-					<div class="input-group input-group-lg">
-						<span class="input-group-text"><?=icon('lock')?></span>
-						<input class="form-control" type="text" id="password" name="password" spellcheck="false" required />
-					</div>
+				<input type="hidden" name="userId" value="<?=$authToken->userId?>" />
+				<input type="hidden" name="authCode" value="<?=$authToken->aut?>" />
+				<p class="alert alert-info">Please use a strong password for security reason.</p>
+				<label class="form-label" for="password">New Password</label>
+				<div class="input-group input-group-lg mb-3">
+					<span class="input-group-text"><?=icon('lock')?></span>
+					<input class="form-control" type="text" id="password" name="password" minlength="8" maxlength="25" />
 				</div>
-				<button type="submit" name="submit" class="btn btn-primary btn-lg mb-2">Change Password</button><br>
-				<a href="login.php" class="btn btn-danger btn-lg mb-2">Cancel</a>
+				<button type="submit" id="submit" name="submit" class="btn btn-primary btn-lg mb-2"><?=icon('check me-1')?> Submit</button><br>
+				<a href="login.php"><?=escHtml('← Back to login page')?></a> |
+				<a href="?action=lostpass" class="mb-3">Resend code</a>
 			</div>
 			<?php
-				break;
-			/** Handle lost password */
-			case 'lostpass':
-				?>
-			<div class="card-body">
-				<h2 class="card-title">Forgotten Password</h2>
-				<div class="alert alert-danger d-none"></div>
-				<div class="mb-3">
-					<label class="form-label" for="userName">Username or Email</label>
-					<div class="input-group input-group-lg">
-						<span class="input-group-text"><?=icon('user')?></span>
-						<input class="form-control" type="text" id="userName" name="userName" spellcheck="false" required />
-					</div>
-				</div>
-				<div class="mb-2">
-					<button type="submit" name="submit" class="btn btn-primary btn-lg mb-2">Find Password</button><br>
-					<a href="login.php">&larr; Back to Login</a>
-				</div>
-			</div>
-			<?php
-				break;
-			default:
+					break;
+				/** Handle lost password */
+				case 'lostpass':
 			?>
+			<h2 class="card-header">Find Your Account</h2>
 			<div class="card-body">
-				<h2 class="card-title">Login</h2>
-				<div class="alert alert-danger d-none"></div>
+				<p class="alert d-none"></p>
+				<div id="request">
+					<label class="form-label" for="userName">Username or Email</label>
+					<div class="input-group input-group-lg mb-3">
+						<span class="input-group-text"><?=icon('user')?></span>
+						<input class="form-control" type="text" id="userName" name="userName" spellcheck="false" minlength="5" />
+					</div>
+					<div class="mb-3 form-check">
+						<input class="form-check-input" id="notRobot" name="notRobot" type="checkbox" />
+						<label class="form-check-label" for="notRobot">I am not a robot</label>
+					</div>
+					<button type="submit" id="submit" name="submit" class="btn btn-primary btn-lg mb-3"><?=icon('search me-1')?> Search</button>
+				</div>
+				<!--<span>Didn't receive?</span> <a href="?action=lostpass" class="mb-3">Resend code</a><br>-->
+				<a href="login.php"><?=escHtml('← Back to login page')?></a>
+			</div>
+			<?php
+					break;
+				default:
+			?>
+			<h2 class="card-header">Login</h2>
+			<div class="card-body">
+				<p class="alert d-none text-center"></p>
 				<div class="mb-3">
 					<label class="form-label" for="userName">Username or Email</label>
 					<div class="input-group input-group-lg">
@@ -119,8 +129,9 @@ require( 'html-header.php' );
 					<input class="form-check-input" name="remember" type="checkbox" id="remember" value="forever"/>
 					<label class="form-check-label" for="remember">Remember Me</label>
 				</div>
-				<button type="submit" name="submit" class="btn btn-primary btn-lg mb-2" aria-label="Submit Data">Login</button><br>
-				<a href="?action=lostpass" id="loastPass" class="mb-1">Lost your password?</a>
+				<button type="submit" id="submit" name="submit" class="btn btn-primary btn-lg mb-3" aria-label="Submit Data"><?=icon('check me-1')?> Sign In</button><br>
+				<a href="?action=lostpass" id="loastPass" class="mb-3">Lost your password?</a><br>
+				<a href="<?=( BASEURI . '/' )?>"><?=escHtml('← Back to main site')?></a>
 			</div>
 			<?php
 			}
@@ -129,48 +140,49 @@ require( 'html-header.php' );
 	</form>
 </div>
 <?php
-// javascript functions and variables
-$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
-if( $action === 'recover' ) {
-	$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
-	document.addEventListener("DOMContentLoaded", function() {
-		SeForm.call(
-			document.getElementById("loginForm"), {
-				url: "../api/login.php", success: function(message) {
-
-				}
-			}
-		);
-		SeForm.call(document.getElementById("loginForm"), { url: "../api/login.php", target: "login.php" } );
-	});
-EOS
-	);
-} elseif( $action === 'lostpass' ) {
-	$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
-	document.addEventListener("DOMContentLoaded", function() {
-		var loginForm = document.getElementById("loginForm");
-		if(typeof window.sessionStorage !== "undefined") {
-			document.getElementById("userName").value = (sessionStorage.userName || "");
-			delete sessionStorage.userName;
+addPageJsFile( 'js/async-form.js' );
+function onPageJsCode() {
+	global $action;
+?>
+document.addEventListener("DOMContentLoaded", function() {
+	<?php
+	if( $action === 'recover' ) {
+	?>
+	var asyncForm = AsyncForm(document.getElementById("loginForm"), { url: "../api/login.php", success: function() {
+			window.location = "login.php";
+			return true;
 		}
-		SeForm.call(loginForm, { url: "../api/login.php", success: function(message) {
-			var alertDiv = loginForm.querySelector("div.alert");
-			alertDiv.innerHTML = message;
-			alertDiv.classList.remove("d-none");
-		}});
 	});
-EOS
-	);
-} elseif( $action === 'login' ) {
-	$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
-	document.addEventListener("DOMContentLoaded", function() {
-		SeForm.call(document.getElementById("loginForm"), { url: "../api/login.php", target: "login.php" } );
-		document.getElementById("loastPass").addEventListener("click", function(){
-			if(typeof window.sessionStorage !== "undefined")
-				sessionStorage.userName = document.getElementById("userName").value;
-		});
+	<?php
+	} elseif( $action === 'lostpass' ) {
+	?>
+	var asyncForm = AsyncForm(document.getElementById("loginForm"), {
+		url: "../api/login.php", success: function(response) {
+			this.formElem.querySelectorAll("input,button").forEach(function(element){
+				element.disabled = true;
+			});
+			document.getElementById("request").className = "d-none";
+			return false;
+		}
 	});
-EOS
-	);
+	<?php
+	} else {
+	?>
+	var asyncForm = AsyncForm(document.getElementById("loginForm"), { url: "../api/login.php", success: function(response) {
+			if(window.localStorage)
+				localStorage.authToken = response.message.authToken;
+			window.location = "index.php";
+			return true;
+		} 
+	});
+	document.getElementById("loastPass").addEventListener("click", function(){
+		if(typeof window.sessionStorage !== "undefined")
+			sessionStorage.userName = document.getElementById("userName").value;
+	});
+	<?php
+	}
+	?>
+});
+<?php
 }
-include( 'html-footer.php' );
+include( __DIR__ . '/footer.php' );

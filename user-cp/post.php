@@ -9,33 +9,33 @@
  * @subpackage Administration
  */
 /** Include blog bootstrap file and related utilities */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 /**
  * Sreen options
  * @var object
  */
-$option = request( 'cat', 'tab', 'sot' );
+$option = request( Term::TYPE_CAT, 'tab', 'sot' );
 /**
  * Instantiate the page object including the options
  */
-$_page = sprintf( '/user-cp/post.php?tab=%s&sot=%s&cat=%s', $option->tab, $option->sot, $option->cat );
-$_page = new Page( 'Posts', $_page );
+$HTML = sprintf( '/user-cp/post.php?tab=%s&sot=%s&cat=%s', $option->tab, $option->sot, $option->cat );
+initHtmlPage( 'Posts', $HTML );
 /** Create a where clause base on $option->tab */
 $where = [ 'Post.rowType=?' ];
 switch( $option->tab ) {
 	case 'public':
-		$where[] = 'Post.status=' . $db->quote( 'public' );
+		$where[] = 'Post.status=' . $_db->quote( 'public' );
 		break;
 	case 'draft':
-		$where[] = 'Post.status=' . $db->quote( 'draft' );
+		$where[] = 'Post.status=' . $_db->quote( 'draft' );
 		break;
 	default:
 		$option->tab = 'all';
 }
 /** Fallback for no category option */
 if( $option->cat != 0 )
-	$where[] = 'Post.category=' . $db->quote( $option->cat );
+	$where[] = 'Post.category=' . $_db->quote( $option->cat );
 /** Create an order-by clause phrase */
 $order = [];
 switch( $option->sot ) {
@@ -46,11 +46,11 @@ switch( $option->sot ) {
 		$order[] = 'Post.title DESC';
 		break;
 	case 'dateAsc':
-		$order[] = 'Post.posted ASC';
+		$order[] = 'Post.datePosted ASC';
 		break;
 	default:
 		$option->sot = 'dateDesc';
-		$order[] = 'Post.posted DESC';
+		$order[] = 'Post.datePosted DESC';
 }
 $order = implode( ',', $order );
 $where = implode( ' AND ', $where );
@@ -58,28 +58,28 @@ $where = implode( ' AND ', $where );
  * Pagination backends: We use the $where clause here too since we are fetching a tab
  * independently
  */
-$paging = $db->prepare( 'SELECT COUNT(*) FROM Post WHERE ' . $where );
+$paging = $_db->prepare( 'SELECT COUNT(*) FROM Post WHERE ' . $where );
 $paging->execute( [ 'post' ] );
 $paging = parseInt( $paging->fetchColumn() );
 $paging = new Paging( 20, $paging );
 /** Fetch the posts from database applying all requested options */
-$postList = $db->prepare( sprintf(
-	'SELECT Post.id, Post.title, Post.permalink, Post.excerpt, PostMeta.metaValue as thumbnail, IF(Post.author IN (?, NULL), ?, Person.userName) as author, IFNULL(Term_A.title, ?) AS category, Post.posted, GROUP_CONCAT(?, Term_B.title) AS labels FROM Post LEFT JOIN Term Term_A ON Term_A.id=Post.category ' .
-	'LEFT JOIN Person ON Person.id=Post.author LEFT JOIN Term Term_B ON EXISTS(SELECT * FROM TermLink WHERE TermLink.termId=Term_B.id AND TermLink.postId=Post.id) LEFT JOIN PostMeta ON PostMeta.postId=Post.thumbnail AND PostMeta.metaKey=? WHERE %s GROUP BY Post.id ORDER BY %s LIMIT %s', $where, $order, $paging->getLimit()
+$postList = $_db->prepare( sprintf(
+	'SELECT Post.id, Post.title, Post.permalink, Post.excerpt, PostMeta.metaValue as thumbnail, IF(Post.author IN (?, NULL), ?, Uzer.userName) as author, IFNULL(Term_A.title, ?) AS category, Post.datePosted, GROUP_CONCAT(?, Term_B.title) AS labels FROM Post LEFT JOIN Term Term_A ON Term_A.id=Post.category ' .
+	'LEFT JOIN Uzer ON Uzer.id=Post.author LEFT JOIN Term Term_B ON EXISTS(SELECT * FROM TermLink WHERE TermLink.termId=Term_B.id AND TermLink.postId=Post.id) LEFT JOIN PostMeta ON PostMeta.postId=Post.thumbnail AND PostMeta.metaKey=? WHERE %s GROUP BY Post.id ORDER BY %s LIMIT %s', $where, $order, $paging->getLimit()
 ) );
-$postList->execute( [ $_login->userId, 'You', 'Uncategorized', ' ', 'media_metadata', 'post' ] );
+$postList->execute( [ $_usr->id, 'You', 'Uncategorized', ' ', 'media_metadata', 'post' ] );
 $postList = $postList->fetchAll( PDO::FETCH_CLASS, 'Post' );
 $postList = array_values($postList);
 // Categories for selection widget in screen option form
-$termList = Term::getList( 'cat' );
+$termList = Term::getList( Term::TYPE_CAT );
 /** All tabs and sort options available */
 $tabsData = [ 'all' => 'All', 'public' => 'Public', 'draft' => 'Draft' ];
 $sortData = [ 'nameAsc' => 'Name Ascending', 'nameDesc' => 'Name Descending', 'dateAsc' => 'Date Ascending', 'dateDesc' => 'Date Descending' ];
 // Begin the page
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <nav aria-label="breadcrumb">
-	<ol class="breadcrumb my-4">
+	<ol class="breadcrumb my-3">
 		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
 		<li class="breadcrumb-item active" aria-current="page">Posts</li>
 	</ol>
@@ -165,7 +165,7 @@ include( 'html-header.php' );
 		<?php
 		if( isset($postList[0]) ) {
 			echo '<div id="posts">';
-			$icons = [ 'posted' => 'calendar', 'author' => 'user', 'category' => 'folder', 'labels' => 'link' ];
+			$icons = [ 'datePosted' => 'calendar', 'author' => 'user', 'category' => 'folder', 'labels' => 'link' ];
 			$icons = array_map( 'icon', $icons );
 			$icons = (object) $icons;
 			foreach( $postList as $index => $entry ) {
@@ -175,10 +175,10 @@ include( 'html-header.php' );
 				$entry->excerpt = escHtml($entry->excerpt);
 				$entry->category = escHtml($entry->category);
 				$entry->author = escHtml($entry->author);
-				$entry->posted = parseDate( $entry->posted );
+				$entry->datePosted = parseDate( $entry->datePosted );
 				$entry->permalink = escHtml( Rewrite::postUri( $entry ) );
-				$entry->posted = $entry->posted->month . ', ' . $entry->posted->year;
-				$entry->posted = escHtml($entry->posted);
+				$entry->datePosted = $entry->datePosted->month . ', ' . $entry->datePosted->year;
+				$entry->datePosted = escHtml($entry->datePosted);
 				$entry->thumbnail = json_decode($entry->thumbnail);
 				$entry->thumbnail = Media::getImage( $entry->thumbnail, 'small' );
 				$entry->thumbnail = escHtml($entry->thumbnail);
@@ -196,7 +196,7 @@ include( 'html-header.php' );
 						<h4 class="card-title"><?=++$index . '. ' . $entry->title?></h4>
 						<p class="card-text"><?=$entry->excerpt?></p>
 						<p class="card-text">
-							<span class="label label-primary"><?=$icons->posted . ' ' . $entry->posted?></span>
+							<span class="label label-primary"><?=$icons->datePosted . ' ' . $entry->datePosted?></span>
 							<span class="label label-primary"><?=$icons->author . ' ' . $entry->author?></span>
 							<span class="label label-primary"><?=$icons->category . ' ' . $entry->category?></span>
 							<span class="label label-primary"><?=$icons->labels . ' '. $entry->labels?></span>
@@ -220,11 +220,11 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-doHtmlPaging( $paging, $_page->path );
+doHtmlPaging( $paging, $HTML->path );
 // return to this page after doind whatever
-$redirect = urlencode($_page->path);
-$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<EOS
+$redirect = urlencode($HTML->path);
+addPageJsFile( 'js/jquery.action-button.js' );
+$HTML->addPageMeta( Page::META_JS_CODE, <<<EOS
 $(document).ready(function() {
 	$("#posts a[data-action]").actionBtn({
 		unlink: "../api/post-edit.php",
@@ -233,4 +233,4 @@ $(document).ready(function() {
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
@@ -21,8 +21,8 @@ if(isset($_POST['submit']))
 	prepare_update($user, ['userName', 'email','password'], $holders, $values);
 	try
 	{
-		$stmt = $db->quote((int) $user->id);
-		$stmt = $db->prepare( 'UPDATE users SET $holders WHERE id=$stmt' );
+		$stmt = $_db->quote((int) $user->id);
+		$stmt = $_db->prepare( 'UPDATE users SET $holders WHERE id=$stmt' );
 		$stmt->execute($values);
 	}
 	catch(Exception $e)
@@ -38,8 +38,8 @@ if(isset($_POST['submit']))
 else
 {
 
-	$user = $db->quote((int) $_GET['id']);
-	$user = $db->query( 'SELECT id,userName,email,password,state FROM users WHERE id=$user LIMIT 1' )->fetch();
+	$user = $_db->quote((int) $_GET['id']);
+	$user = $_db->query( 'SELECT id,userName,email,password,state FROM users WHERE id=$user LIMIT 1' )->fetch();
 	if(!$user){
 		header('location:'.getReturnUrl('404.php'));
 		exit;
@@ -49,11 +49,11 @@ $user->state = checked($user->state);
 
 $error = implode($error);
 
-$_page = new Page( 'Edit User', "/user-cp/user-cp-edit.php?id=$user->id" );
-$_page->meta = <<<META
+initHtmlPage( 'Edit User', "/user-cp/user-cp-edit.php?id=$user->id" );
+$HTML->meta = <<<META
 <link media="all" rel="stylesheet" href="css/admin.css" />
 META;
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div class="card">
 	<div class="card-body">
@@ -88,7 +88,7 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 $(document).ready(function(){
 	$("#userName").change(function(e){
 
@@ -96,4 +96,4 @@ $(document).ready(function(){
 	$("select#displayName").formSelect();
 });
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

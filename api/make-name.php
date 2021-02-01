@@ -8,10 +8,10 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-define( 'SE_NO_DB', true );
-require( dirname(__FILE__) . '/Load.php' );
+define( 'SHORT_INIT', true );
+require( __DIR__ . '/Load.php' );
 
 $theText = request( 'text' );
 $theText = makePermalink( $theText );
 
-jsonOutput( [ 'success' => true, 'text' => $theText ] );
+closeJson( [ 'success' => true, 'text' => $theText ] );

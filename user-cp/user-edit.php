@@ -1,50 +1,48 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * User Management Page
+ * @package Sevida
+ * @subpackage Administration
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
-$person = $db->prepare( 'SELECT a.id, a.userName, a.picture, a.fullName, a.email, a.role, a.status, GROUP_CONCAT(?, b.metaValue) FROM Person a LEFT JOIN PersonMeta b ON b.userId=a.id WHERE a.id=? GROUP BY a.id LIMIT 1' );
-$user->execute( [ '|', request( 'id' ) ] );
-$person = $db->fetchClass( $person, 'User' );
-if( ! $person )
-	redirect( BASEPATH . '/404.php' );
-$user->firstName = '';
-$user->lastName = '';
-$user->nickName = '';
-$user->bioInfo = '';
-$user->phoneNo = '';
-$user->fbUserName = '';
-$user->twUserName = '';
+$userId = request( 'id' );
+$userInfo = $_db->prepare( 'SELECT a.id, a.userName, a.picture, a.fullName, a.email, a.role, a.status, GROUP_CONCAT(?, b.metaValue) FROM Uzer a LEFT JOIN UzerMeta b ON b.userId=a.id WHERE a.id=? GROUP BY a.id LIMIT 1' );
+$userInfo->execute( [ '|', $userId ] );
+if( 0 === $userInfo->rowCount() )
+	redirect( BASEURI . '/404.php' );
+$userInfo = $_db->fetchClass( $userInfo, 'User' );
 
-if( $user->picture ) {
-	$picture = $db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId=? AND metaKey=? LIMIT 1' );
-	$picture->execute( [ $user->id, 'media_metadata' ] );
+$userInfo->firstName = '';
+$userInfo->lastName = '';
+$userInfo->nickName = '';
+$userInfo->bioInfo = '';
+$userInfo->phoneNo = '';
+$userInfo->fbUserName = '';
+$userInfo->twUserName = '';
+
+if( $userInfo->picture ) {
+	$picture = $_db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId=? AND metaKey=? LIMIT 1' );
+	$picture->execute( [ $userInfo->id, 'media_metadata' ] );
 	$picture = $picture->fetchColumn();
 	$picture = json_decode($picture);
 	$picture = Media::getImage( $picture, 'medium' );
 } else {
 	$picture = Media::getAvatar( 'medium' );
 }
-$_page = new Page( 'My Profile', USERPATH . '/profile.php?id=' . $user->id );
-$_page->addPageMeta( Page::META_CSS_FILE, 'css/compact.css' );
-include( 'html-header.php' );
+initHtmlPage( 'My Profile', 'profile.php?id=' . $userInfo->id );
+addPageCssFile( 'css/compact.css' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <nav aria-label="breadcrumb">
-	<ol class="breadcrumb">
+	<ol class="breadcrumb my-3">
 		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
 		<li class="breadcrumb-item active" aria-current="page">My Profile</li>
 	</ol>
 </nav>
 <div class="page-header">
-	<h2>Profile <small><a href="#" class="label label-primary">Edit</a></small></h2>
+	<h2>Edit Profile</h2>
 </div>
 <div class="container">
 	<div class="container-sm">
@@ -65,26 +63,26 @@ include( 'html-header.php' );
 							<div class="mb-3">
 								<label for="userName" class="col-sm-4 form-label">Username</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="userName" type="text" value="<?=$user->userName?>" readonly />
+									<input class="form-control" id="userName" type="text" value="<?=$userInfo->userName?>" readonly />
 									<div class="form-text">Usernames connot be changed</div>
 								</div>
 							</div>
 							<div class="mb-3">
 								<label for="firstName" class="col-sm-4 form-label">First Name</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="firstName" name="firstName" type="text" value="<?=$user->firstName?>" />
+									<input class="form-control" id="firstName" name="firstName" type="text" value="<?=$userInfo->firstName?>" />
 								</div>
 							</div>
 							<div class="mb-3">
 								<label for="firstName" class="col-sm-4 form-label">Last Name</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="lastName" name="lastName" type="text" value="<?=$user->lastName?>" />
+									<input class="form-control" id="lastName" name="lastName" type="text" value="<?=$userInfo->lastName?>" />
 								</div>
 							</div>
 							<div class="mb-3">
 								<label for="firstName" class="col-sm-4 form-label">Nick Name</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="lastName" name="lastName" type="text" value="<?=$user->lastName?>" />
+									<input class="form-control" id="lastName" name="lastName" type="text" value="<?=$userInfo->lastName?>" />
 								</div>
 							</div>
 						</div>
@@ -92,7 +90,7 @@ include( 'html-header.php' );
 							<div class="mb-3">
 								<label for="email" class="col-sm-4 form-label">Email (required)</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="email" name="email" type="email" value="<?=$user->email?>" />
+									<input class="form-control" id="email" name="email" type="email" value="<?=$userInfo->email?>" />
 									<div class="form-text">Email must be validated and verified</div>
 								</div>
 							</div>
@@ -101,7 +99,7 @@ include( 'html-header.php' );
 								<div class="col-sm-8">
 									<div class="input-group">
 										<div class="input-group-text"><?=icon('whatsapp')?></div>
-										<input class="form-control" id="phoneNo" name="phoneNo" type="text" value="<?=$user->phoneNo?>" />
+										<input class="form-control" id="phoneNo" name="phoneNo" type="text" value="<?=$userInfo->phoneNo?>" />
 									</div>
 								</div>
 							</div>
@@ -110,7 +108,7 @@ include( 'html-header.php' );
 								<div class="col-sm-8">
 									<div class="input-group">
 										<div class="input-group-text"><?=icon('facebook')?></div>
-										<input class="form-control" id="fbUserName" name="fbUserName" type="text" value="<?=$user->fbUserName?>" />
+										<input class="form-control" id="fbUserName" name="fbUserName" type="text" value="<?=$userInfo->fbUserName?>" />
 									</div>
 								</div>
 							</div>
@@ -119,7 +117,7 @@ include( 'html-header.php' );
 								<div class="col-sm-8">
 									<div class="input-group">
 										<div class="input-group-text"><?=icon('twitter')?></div>
-										<input class="form-control" id="twUserName" name="twUserName" type="text" value="<?=$user->twUserName?>" />
+										<input class="form-control" id="twUserName" name="twUserName" type="text" value="<?=$userInfo->twUserName?>" />
 									</div>
 								</div>
 							</div>
@@ -128,7 +126,7 @@ include( 'html-header.php' );
 							<div class="mb-3">
 								<label for="bioInfo" class="col-sm-4 form-label">Biological Info</label>
 								<div class="col-sm-8">
-									<textarea class="form-control" id="bioInfo" name="bioInfo" rows="5"><?=$user->bioInfo?></textarea>
+									<textarea class="form-control" id="bioInfo" name="bioInfo" rows="5"><?=$userInfo->bioInfo?></textarea>
 								</div>
 							</div>
 							<div class="mb-3">
@@ -143,10 +141,10 @@ include( 'html-header.php' );
 								<label for="password" class="col-sm-4 form-label">Password</label>
 								<div class="col-sm-8 input-group">
 									<div class="input-group-text"><?=icon('lock')?></div>
-									<input class="form-control" id="password" name="password" type="text" value="<?=$user->twUserName?>" />
+									<input class="form-control" id="password" name="password" type="text" value="<?=$userInfo->twUserName?>" />
 								</div>
 							</div>
-							<div class="col-xs-12 col-sm-6">
+							<div class="col-sm-12 col-md-6">
 								<p class="form-check">
 									<label>
 										<input type="checkbox" id="chk-pass" autocomplete="off" />
@@ -171,10 +169,6 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
-$(document).ready(function(){
-
-});
-EOS
-);
-include( 'html-footer.php' );
+function onPageJsCode() {
+}
+include_once( __DIR__ . '/footer.php' );

@@ -8,17 +8,17 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $action = request( 'action', 'id' );
 switch( $action->action ) {
 	case 'modify':
-		$page = $db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
+		$page = $_db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
 		$page->execute( [ $action->id, 'page' ] );
 		if( 0 === $page->rowCount() )
-			redirect( BASEPATH . '/404.php' );
-		$page = $db->fetchClass( $page, 'Page' );
+			redirect( BASEURI . '/404.php' );
+		$page = $_db->fetchClass( $page, 'Page' );
 		break;
 	case 'create':
 		$page = new Page();
@@ -28,9 +28,9 @@ switch( $action->action ) {
 		die();
 }
 if( $page->id ) {
-	$pageMeta = $db->prepare( 'SELECT metaKey, metaValue FROM PostMeta WHERE postId=?' );
+	$pageMeta = $_db->prepare( 'SELECT metaKey, metaValue FROM PostMeta WHERE postId=?' );
 	$pageMeta->execute( [ $page->id ] );
-	$pageMeta = $db->fetchMeta( $pageMeta, true );
+	$pageMeta = $_db->fetchMeta( $pageMeta, true );
 } else {
 	$pageMeta = array_fill_keys( [ Page::META_HEAD_TAG, Page::META_CSS_CODE, Page::META_JS_CODE ], null );
 }
@@ -44,25 +44,27 @@ $pageLocked = checked( ! empty($page->password) );
 $pageStatus = checked( $page->status=== 'draft' );
 switch( $action->action ) {
 	case 'modify':
-		$_page = new Page( 'Edit Page', USERPATH . '/page-edit.php?action=modify&id=' . $page->id );
+		initHtmlPage( 'Edit Page', 'page-edit.php?action=modify&id=' . $page->id );
 		break;
 	case 'create':
 	default:
-		$_page = new Page( 'Create Page', USERPATH . '/page-edit.php?action=create' );
+		initHtmlPage( 'Create Page', 'page-edit.php?action=create' );
 		break;
 }
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
-<ol class="breadcrumb">
-	<li><a href="index.php">Home</a></li>
-	<li><a href="page.php">Page</a></li>
-	<li class="active"><?=$action->action?></li>
-</ol>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item"><a href="page.php">Page</a></li>
+		<li class="breadcrumb-item active" aria-current="page"><?=$action->action?></li>
+	</ol>
+</nav>
 <form id="pageForm">
 	<input type="hidden" name="id" value="<?=$page->id?>" />
 	<input type="hidden" name="action" value="<?=$action->action?>" />
 	<div class="row">
-		<div class="col-xs-12 col-sm-7">
+		<div class="col-md-7">
 			<div class="mb-3">
 				<label for="title" class="form-label">Page Title</label>
 				<input type="text" class="form-control" name="title" id="title" value="<?=$page->title ?>" />
@@ -72,7 +74,7 @@ include( 'html-header.php' );
 				<textarea class="form-control" name="content" id="content" rows="20"><?=$page->content?></textarea>
 			</div>
 		</div>
-		<div class="col-xs-12 col-sm-5">
+		<div class="col-md-5">
 			<div id="accordion" class="accordion" role="tablist" aria-multiselectable="true">
 				<div class="accordion-item">
 					<div id="headerA" class="card-header" role="tab">
@@ -147,10 +149,10 @@ include( 'html-header.php' );
 	</div>
 </form>
 <?php
-$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+addPageJsFile( 'js/async-form.js' );
+function onPageJsCode() {
 $(document).ready(function(){
-	$("form#pageForm").asyncForm({url: "../api/page-edit.php", target: "page.php?tab=all"});
+	var asyncForm = AsyncForm(document.getElementById("pageForm"), {url: "../api/page-edit.php", target: "page.php?tab=all"});
 	$("input#pageLock").on("change", function(){
 		var isLocked = this.checked,
 			passWrap = $("#password_div");
@@ -162,4 +164,4 @@ $(document).ready(function(){
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

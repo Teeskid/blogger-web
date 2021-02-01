@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 
 require( ABSPATH . BASE_UTIL . '/lib-apkparser.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
@@ -24,14 +24,16 @@ else {
 	$files = [];
 }
 $error = implode( '<br>', $error );
-$_page = new Page( 'Upload Media', USERPATH . '/media-upLoad.php' );
-include( 'html-header.php' );
+initHtmlPage( 'Upload Media', 'media-upLoad.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
-<ul class="breadcrumb">
-	<li><a href="index.php">Home</a></li>
-	<li><a href="media.php">Media Library</a></li>
-	<li class="active">Upload</li>
-</ul>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item"><a href="media.php">Media Library</a></li>
+		<li class="breadcrumb-item active" aria-current="page">Upload</li>
+	</ol>
+</nav>
 <h2>Upload</h2>
 <div class="card bg-light text-dark">
 	<div class="card-header">Select File(s)</div>
@@ -80,7 +82,7 @@ eAlert( $error, 'error' )
 </div>
 <p class="text-info">Maximum upload file size: 100 MB.</p><br><br><br>
 <?php
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+function onPageJsCode() {
 var progress, message;
 $(document).ready(function(){
 	progress = $("#progress"),
@@ -161,4 +163,4 @@ $(document).ready(function(){
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

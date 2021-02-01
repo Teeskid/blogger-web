@@ -5,18 +5,19 @@
  * Requests sent to /api/ return an object of this class
  * 
  * @package Sevida
+ * @subpackage Utilities
  */
-class Response {
+class Json {
     /**
-     * Fileds feedback
+     * @var array
      */
     public array $feedBack = [];
     /**
-     * The message body, be it can ne
+     * @var mixed
      */
-    public array $message = [];
+    public mixed $message = null;
     /**
-     * Indicates whether the action requested was taken or not
+     * @var bool
      */
     public bool $success = false;
     /**
@@ -24,19 +25,21 @@ class Response {
      * @param string $message The message to be added
      */
     public function addMessage( string $message ) {
+        if( ! is_array($this->message) )
+            $this->message = [];
         $this->message[] = $message;
     }
     /**
      * Setter for $message
-     * @param array $message The new message to set
+     * @param mixed $message
      */
-    public function setMessage( array $message ) {
+    public function setMessage( $message ) {
         $this->message = $message;
     }
     /**
      * Sets a boolean feedback to a child of $feedback
-     * @param string $index What field are we setting feedback
-     * @param bool $feedBack What is the state of that that field
+     * @param string $index
+     * @param bool $feedBack
      */
     public function setFeedBack( string $index, bool $value ) {
         $this->feedBack[$index] = $value;
@@ -50,6 +53,13 @@ class Response {
     public function setFeedBacks( array $indexes, bool $value = false ) {
         foreach( $indexes as $index )
             $this->feedBack[$index] = $value;
+    }
+    /**
+     * Sets success indeterminately
+     * @param bool $success
+     */
+    public function setSuccess( bool $success = true ) {
+        $this->success = $success;
     }
     /**
      * Checks if there is a false value out of the $feedBack items and evaluates the success of

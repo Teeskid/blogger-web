@@ -16,8 +16,8 @@ define( 'SE_HTML', true );
 require( dirname(__DIR__) . '/Load.php' );
 
 /** If the user is not logged in and we are not installing the blog */
-if( ! LOGGED_IN && ! defined('SE_LOGIN') && ! defined('SE_INSTALL') ) {
-	$redirect = USERPATH . '/login.php';
+if( ! isset($_usr) && ! defined('SE_LOGIN') && ! defined('SE_INSTALL') ) {
+	$redirect = 'login.php';
 	// resume if any outstanding job
 	if( false === strpos( $_SERVER['PHP_SELF'], 'index.php' ) )
 		$redirect .= '?redirect=' . rawurlencode($_SERVER['REQUEST_URI']);

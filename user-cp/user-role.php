@@ -9,7 +9,7 @@
  * @whatsapp: +2348145737179
  */
 
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
@@ -19,7 +19,7 @@ if( isset($_POST['submit']) ) {
 	$user->role  = parseInt($user->role);
 	try
 	{
-		$stmt = $db->prepare( 'UPDATE users SET role=? WHERE id=?' );
+		$stmt = $_db->prepare( 'UPDATE users SET role=? WHERE id=?' );
 		$stmt->execute([$user->role, $user->id]);
 	}
 	catch(Exception $e)
@@ -33,9 +33,9 @@ if( isset($_POST['submit']) ) {
 	}
 } else {
 	$user = parseInt($_GET['id']);
-	$user = $db->quote($user);
+	$user = $_db->quote($user);
 	$user = sprintf('SELECT id,userName,role FROM %s WHERE id=%s LIMIT 1', users, $user);
-	$user = $db->fetchObject($user);
+	$user = $_db->fetchObject($user);
 	if( !$user ) {
 		header('location:'.getReturnUrl('404.php'));
 		exit;
@@ -45,12 +45,12 @@ $user->role = parseInt($user->role);
 
 $error = implode($error);
 
-$_page = new Page( 'Edit Role', "/user-cp/admin-role.php?id=$user->id" );
-$_page->meta = <<<'EOS'
+initHtmlPage( 'Edit Role', "/user-cp/admin-role.php?id=$user->id" );
+$HTML->meta = <<<'EOS'
 <script src="js/admin.js"></script>
 <link media="all" rel="stylesheet" href="css/admin.css" />
 EOS;
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div class="card">
 	<div class="card-body">
@@ -73,9 +73,9 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 $(document).ready(function(){
 	$("select#role").formSelect();
 });
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

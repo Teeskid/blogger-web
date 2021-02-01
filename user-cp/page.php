@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $option = request( 'tab', 'sot' );
@@ -32,43 +32,45 @@ switch( $option->sot ) {
 		$order[] = 'a.title DESC';
 		break;
 	case 'dateAsc':
-		$order[] = 'a.posted ASC';
+		$order[] = 'a.datePosted ASC';
 		break;
 	default:
 		$option->sot = 'dateDesc';
-		$order[] = 'a.posted DESC';
+		$order[] = 'a.datePosted DESC';
 }
 $order = implode( ',', $order );
 $where = implode( ' AND ', $where );
 
-$paging = $db->query( 'SELECT COUNT(*) FROM Post a WHERE ' . $where );
+$paging = $_db->query( 'SELECT COUNT(*) FROM Post a WHERE ' . $where );
 $paging = parseInt( $paging->fetchColumn() );
 $paging = new Paging( 20, $paging );
 
-$pageList = $db->prepare( sprintf(
-	'SELECT a.id, a.title, a.permalink, a.excerpt, IF(a.author=? OR a.author=NULL, ?, c.userName) as author, IFNULL(b.title, ?) AS category, a.posted, GROUP_CONCAT(?, d.title) AS labels FROM Post a LEFT JOIN Term b ON b.id=a.category ' .
-	'LEFT JOIN Person c ON c.id=a.author LEFT JOIN Term d ON EXISTS(SELECT * FROM TermLink e WHERE e.termId=d.id AND e.postId=a.id) WHERE %s GROUP BY a.id ORDER BY %s LIMIT %s', $where, $order, $paging->getLimit()
+$pageList = $_db->prepare( sprintf(
+	'SELECT a.id, a.title, a.permalink, a.excerpt, IF(a.author=? OR a.author=NULL, ?, c.userName) as author, IFNULL(b.title, ?) AS category, a.datePosted, GROUP_CONCAT(?, d.title) AS labels FROM Post a LEFT JOIN Term b ON b.id=a.category ' .
+	'LEFT JOIN Uzer c ON c.id=a.author LEFT JOIN Term d ON EXISTS(SELECT * FROM TermLink e WHERE e.termId=d.id AND e.postId=a.id) WHERE %s GROUP BY a.id ORDER BY %s LIMIT %s', $where, $order, $paging->getLimit()
 ) );
-$pageList->execute( [ $_login->userId, 'You', 'Uncategorized', ' ' ] );
+$pageList->execute( [ $_usr->id, 'You', 'Uncategorized', ' ' ] );
 $pageList = $pageList->fetchAll( PDO::FETCH_CLASS, 'Page' );
 $pageList = array_values($pageList);
 
 $tabsData = [ 'all' => 'All', 'public' => 'Public', 'draft' => 'Draft' ];
 $sortData = [ 'nameAsc' => 'Name Ascending', 'nameDesc' => 'Name Descending', 'dateAsc' => 'Date Ascending', 'dateDesc' => 'Date Descending' ];
 
-$_page = sprintf( '/user-cp/page.php?tab=%s&sot=%s', $option->tab, $option->sot );
-$_page = new Page( 'Pages', $_page );
-include( 'html-header.php' );
+$HTML = sprintf( '/user-cp/page.php?tab=%s&sot=%s', $option->tab, $option->sot );
+initHtmlPage( 'Pages', $HTML );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div class="page-header">
 	<h2>Pages <small><a href="page-edit.php?action=create" class="label label-primary">Create</a></small></h2>
 </div>
-<ol class="breadcrumb">
-	<li><a href="index.php">Home</a></li>
-	<li class="active">Pages</li>
-</ol>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item active" aria-current="page">Pages</li>
+	</ol>
+</nav>
 <div class="row">
-	<div class="col-xs-12 col-sm-5 col-md-4">
+	<div class="col-md-5 col-lg-4">
 		<div class="card bg-light text-dark">
 			<div class="card-header">Screen Option</div>
 			<ul class="nav nav-tabs">
@@ -104,7 +106,7 @@ foreach( $sortData as $index => $entry ) {
 			</div>
 		</div>
 	</div>
-	<div class="col-xs-12 col-sm-7 col-md-8">
+	<div class="col-md-7 col-lg-8">
 <?php
 if( ! empty($pageList) ) {
 ?>
@@ -126,8 +128,8 @@ if( ! empty($pageList) ) {
 		$entry->category = escHtml($entry->category);
 		$entry->permalink = escHtml(Rewrite::pageUri( $entry ));
 		$entry->author = escHtml($entry->author);
-		$entry->posted = date_format( date_create($entry->posted), $cfg->blogDate );
-		$entry->posted = escHtml($entry->posted);
+		$entry->datePosted = date_format( date_create($entry->datePosted), $_cfg->blogDate );
+		$entry->datePosted = escHtml($entry->datePosted);
 ?>
 			<tr data-id="<?=$entry->id?>">
 				<td><?=++$index?></td>
@@ -144,7 +146,7 @@ if( ! empty($pageList) ) {
 				</td>
 				<td><?=$entry->author?></td>
 				<td>2120</td>
-				<td><?=$entry->posted?></td>
+				<td><?=$entry->datePosted?></td>
 			</div>
 <?php
 $entry = null;
@@ -157,14 +159,14 @@ $entry = null;
 		<div class="alert alert-info text-center">No data available</div>
 <?php
 }
-doHtmlPaging( $paging, $_page->path )
+doHtmlPaging( $paging, $HTML->path )
 ?>
 	</div>
 </div>
 <?php
 unset( $pageList, $entry );
-$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+addPageJsFile( 'js/jquery.action-button.js' );
+function onPageJsCode() {
 $(document).on("ready", "table#pages", function(){
 	$("table#pages a[data-action]").actionBtn({
 		unlink: "../api/page-edit.php",
@@ -173,4 +175,4 @@ $(document).on("ready", "table#pages", function(){
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

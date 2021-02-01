@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 /**
@@ -23,7 +23,7 @@ $tabs_data = [
 ];
 $current_tab = $tabs_data[$tab] ?? false;
 if( !$current_tab ) {
-	_redirect( BASEPATH . '/404.php' );
+	_redirect( BASEURI . '/404.php' );
 }
 $query = sprintf(<<<'EOS'
 SELECT
@@ -41,7 +41,7 @@ WHERE
 EOS
 , users, users, users, $tabs_data['all']['query'], $tabs_data['admin']['query'], $tabs_data['author']['query']);
 
-$query = $db->query($query)->fetch(PDO::FETCH_ASSOC);
+$query = $_db->query($query)->fetch(PDO::FETCH_ASSOC);
 foreach( $query as $y => &$z )  {
 	$tabs_data[$y]['count'] = parseInt($z);
 }
@@ -51,21 +51,21 @@ $current_tab = $tabs_data[$tab];
 $paging = new Paging( 20, $current_tab['count'] );
 
 $query = sprintf('SELECT id,userName,role FROM %s WHERE role %s ORDER BY id ASC LIMIT %s', users, $current_tab['query'], $paging->getLimit());
-$query = $db->query($query);
+$query = $_db->query($query);
 
-$_page = new Page( 'Users', sprintf('/user-cp/user-cp.php?tab=%s&page=%s', $tab, $paging->pageNow) );
-$_page->head = <<<EOS
+initHtmlPage( 'Users', sprintf('/user-cp/user-cp.php?tab=%s&page=%s', $tab, $paging->pageNow) );
+$HTML->head = <<<EOS
 <link rel="stylesheet" media="all" href="css/admin.css" />
 EOS;
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 if(isset($_GET['admin-added'])){
 	alert();
 }
 ?>
 <nav aria-label="breadcrumb">
-	<div>
-		<a href="index.php" class="breadcrumb">Home</a>
-		<a href="#" class="breadcrumb active">Users</a>
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php" class="breadcrumb">Home</a></li>
+		<li class="breadcrumb-item active" aria-current="page">Users</li>
 	</div>
 </nav>
 <div class="card">
@@ -125,14 +125,14 @@ if( $user->id !== $_user ) {
 		<?php
 }
 ?>
-		<?=$paging->html($_page->url)?>
+		<?=$paging->html($HTML->url)?>
 	</div>
 </div>
 <div class="fixed-action-btn">
 	<a href="user-create.php" class="btn-floating btn-large pulse"><?=icon('plus')?></a>
 </div>
 <?php
-$_page->readyjs = <<<'EOS'
+$HTML->readyjs = <<<'EOS'
 document.addEventListener("DOMContentLoaded", function(){
 	M.Tabs.init(document.querySelector(".tabs"));
 	M.FloatingActionButton.init(document.querySelector(".fixed-action-btn"));
@@ -157,4 +157,4 @@ document.addEventListener("DOMContentLoaded", function(){
 	T.FabPulse.init(".pulse");
 });
 EOS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

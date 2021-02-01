@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $option = request( 'tab', 'rowType', 'sort' );
@@ -16,20 +16,20 @@ $option = request( 'tab', 'rowType', 'sort' );
 $where = [ 'Post.rowType=?' ];
 switch( $option->tab ){
 	case 'self':
-		$where[] = 'Post.author=' . $db->quote($_login->userId);
+		$where[] = 'Post.author=' . $_db->quote($_usr->id);
 		break;
 	default:
 		$option->tab = 'all';
 }
 switch( $option->rowType ){
 	case 'image':
-		$where[] = sprintf( 'Post.mimeType IN (%s)', $db->quoteList(FORMAT_IMAGE) );
+		$where[] = sprintf( 'Post.mimeType IN (%s)', $_db->quoteList(FORMAT_IMAGE) );
 		break;
 	case 'audio':
-		$where[] = sprintf( 'Post.mimeType IN (%s)', $db->quoteList(FORMAT_AUDIO) );
+		$where[] = sprintf( 'Post.mimeType IN (%s)', $_db->quoteList(FORMAT_AUDIO) );
 		break;
 	case 'video':
-		$where[] = sprintf( 'Post.mimeType IN (%s)', $db->quoteList(FORMAT_VIDEO) );
+		$where[] = sprintf( 'Post.mimeType IN (%s)', $_db->quoteList(FORMAT_VIDEO) );
 		break;
 	default:
 		$option->rowType = 'all';
@@ -43,29 +43,29 @@ switch( $option->sort ){
 		$sort = 'Post.title DESC';
 		break;
 	case 'dateAsc':
-		$sort = 'Post.posted ASC';
+		$sort = 'Post.datePosted ASC';
 		break;
 	default:
 		$option->sort = 'dateDesc';
-		$sort = 'Post.posted DESC';
+		$sort = 'Post.datePosted DESC';
 }
 $where = implode( ' AND ', $where );
 
-$paging = $db->prepare( 'SELECT COUNT(*) FROM Post WHERE ' . $where );
+$paging = $_db->prepare( 'SELECT COUNT(*) FROM Post WHERE ' . $where );
 $paging->execute( [ 'media' ] );
 $paging = parseInt( $paging->fetchColumn() );
 $paging = new Paging( 20, $paging );
 
-$mediaList = $db->prepare(
-	'SELECT Post.id, Post.title, Post.posted AS uploaded, PostMeta.metaValue AS metaValue, Person.userName AS uploader FROM Post LEFT JOIN PostMeta ON PostMeta.postId=Post.id AND PostMeta.metaKey=? ' .
-	'LEFT JOIN Person ON Person.id=Post.author WHERE ' . $where . ' ORDER BY ' . $sort . ' LIMIT ' . $paging->getLimit()
+$mediaList = $_db->prepare(
+	'SELECT Post.id, Post.title, Post.datePosted AS uploaded, PostMeta.metaValue AS metaValue, Uzer.userName AS uploader FROM Post LEFT JOIN PostMeta ON PostMeta.postId=Post.id AND PostMeta.metaKey=? ' .
+	'LEFT JOIN Uzer ON Uzer.id=Post.author WHERE ' . $where . ' ORDER BY ' . $sort . ' LIMIT ' . $paging->getLimit()
 );
 $mediaList->execute( [ 'media_metadata', 'media' ] );
 $mediaList = $mediaList->fetchAll( PDO::FETCH_CLASS, 'Media' );
 
-$_page = sprintf( '/user-cp/media.php?tab=%s&type=%s&sort=%s', $option->tab, $option->rowType, $option->sort );
-$_page = new Page( 'Media Library', $_page );
-$_page->addPageMeta( Page::META_CSS_CODE, <<<'EOS'
+$HTML = sprintf( '/user-cp/media.php?tab=%s&type=%s&sort=%s', $option->tab, $option->rowType, $option->sort );
+initHtmlPage( 'Media Library', $HTML );
+$HTML->addPageMeta( Page::META_CSS_CODE, <<<'EOS'
 @media (max-width: 767px) {
 	td h4 {
 		font-weight:100;
@@ -82,12 +82,14 @@ $_page->addPageMeta( Page::META_CSS_CODE, <<<'EOS'
 }
 EOS
 );
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
-<ul class="breadcrumb">
-	<li><a href="index.php">Home</a></li>
-	<li class="active">Media</li>
-</ul>
+<nav aria-role="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item active" aria-current="page">Media</li>
+	</ol>
+</nav>
 <h2>Media Library <a href="media-new.php" role="button" class="badge">Upload</a></h2>
 <div class="card bg-light text-dark">
 	<div class="card-header">Screen Option</div>
@@ -183,13 +185,13 @@ foreach( $mediaList as $index => &$entry ) {
 		<span> With Selected: </span>
 		<button type="submit" name="action" value="unlink" class="btn-small">Delete</button>
 <?php
-doHtmlPaging( $paging, $_page->path )
+doHtmlPaging( $paging, $HTML->path )
 ?>
 	</div>
 </div>
 <?php
-$_page->addPageMeta( Page::META_JS_FILE, 'js/jquery.action-button.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+addPageJsFile( 'js/jquery.action-button.js' );
+function onPageJsCode() {
 	$(document).ready(function(){
 		$("table#medialist a[data-action]").actionBtn({
 			unlink: "../api/media-edit.php",
@@ -200,4 +202,4 @@ $_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
 	});
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

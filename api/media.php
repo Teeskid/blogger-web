@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . USER_UTIL . '/MediaUtil.php' );
 
 mediaConstants();
@@ -24,7 +24,7 @@ $option->page = $option->page < 1 ? 1 : $option->page;
 $where = [ 'a.rowType=?' ];
 switch( $option->format ) {
 	case 'image':
-		$where[] = 'a.mimeType IN(' . $db->quoteList(['image/jpeg','image/png']) . ')';
+		$where[] = 'a.mimeType IN(' . $_db->quoteList(['image/jpeg','image/png']) . ')';
 		break;
 	default:
 		$option->format = 'all';
@@ -35,21 +35,21 @@ switch( $option->order ) {
 		$order = 'a.title DESC';
 		break;
 	default:
-		$order = 'a.posted DESC';
+		$order = 'a.datePosted DESC';
 }
 
 $limit = ( --$option->page . ', ' . $option->limit );
 
 
-$response = $db->prepare( "SELECT a.id, a.title, a.mimeType, b.metaValue FROM Post a LEFT JOIN PostMeta b ON b.postId=a.id AND b.metaKey=? WHERE $where ORDER BY $order LIMIT $limit" );
-$response->execute( [ 'media_metadata', 'media' ] );
-$response = $response->fetchAll();
+$json = $_db->prepare( "SELECT a.id, a.title, a.mimeType, b.metaValue FROM Post a LEFT JOIN PostMeta b ON b.postId=a.id AND b.metaKey=? WHERE $where ORDER BY $order LIMIT $limit" );
+$json->execute( [ 'media_metadata', 'media' ] );
+$json = $json->fetchAll();
 
-foreach( $response as $index => &$entry ) {
+foreach( $json as $index => &$entry ) {
 	$metaValue = json_decode($entry->metaValue);
 	$entry->fileName = $metaValue->fileName ?? 'NULL';
 	$entry->thumbnail = Media::getImage( $metaValue, 'small' );
 	unset( $metaValue, $entry->metaValue );
 }
-$response = [ 'success' => true, 'data' => $response ];
-jsonOutput( $response );
+$json = [ 'success' => true, 'data' => $json ];
+closeJson( $json );

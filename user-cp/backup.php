@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . USER_UTIL . '/media.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
@@ -52,16 +52,14 @@ else {
 
 }
 $error = implode('<br/>', $error);
-$_page = new Page( 'Backup', USERPATH . '/backup.php' );
-include( 'html-header.php' );
+initHtmlPage( 'Backup', 'backup.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
-<nav>
-	<div class="nav-wrapper breadcrumb-wrapper">
-		<div class="col s12">
-			<a href="index.php" class="breadcrumb">Home</a>
-			<a href="#" class="breadcrumb active">Backup</a>
-		</div>
-	</div>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item active" aria-current="page">Manage Backup</li>
+	</ol>
 </nav>
 <div class="card">
 	<ul class="tabs card-tabs" role="group" aria-label="...">
@@ -116,7 +114,7 @@ if($lastBackup = _v('last_backup')) {
 	</div>
 </div>
 <?php
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+function onPageJsCode() {
 M.Tabs.init(document.querySelector(".tabs"));
 document.getElementById("select-all").onchange = function(e) {
 	var se = e.target.closest("input");
@@ -126,4 +124,4 @@ document.getElementById("select-all").onchange = function(e) {
 };
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

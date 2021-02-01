@@ -9,4 +9,4 @@
  * @whatsapp: +2348145737179
  */
 $action = (object) [ 'action' => 'create', 'id' => 0 ];
-require( dirname(__FILE__) . '/page-edit.php' );
+require( __DIR__ . '/page-edit.php' );

@@ -1,81 +1,127 @@
 <?php
 /**
- * Helper Functions For HTML
+ * HTML Page Helper Functions
  * @package Sevida
+ * @subpackage Utilities
  */
 /**
- * Loads additional javascript files if any was set
- * @global $_page
+ * Creates new HTML object instance
+ * 
  */
-function doFootJsInc() {
-	global $_page;
-	$option = $_page->getMetaItem(Page::META_JS_FILE);
-	if( isset($option[0]) )
-		foreach( $option as $entry )
-			echo '<script src="' . escHtml($entry) . '"></script>';
-	unset( $option, $entry );
+function initHtmlPage( string $title, string $path ) {
+	global $HTML;
+	$HTML = new Html( $title, $path );
+	$GLOBALS['HTML'] = $HTML;
 }
 /**
- * Outputs additional page javascript code if any has been set
- * @global $_page
+ * Adds meta tag to page object
+ * @param string $metaTag
+ * @global $HTML
  */
-function doFootJsTag() {
-	global $_page;
-	$option = $_page->getMetaItem(Page::META_JS_CODE);
-	if( isset($option[0]) )
-		foreach( $option as $entry )
-			echo $entry;
-	unset( $option, $entry );
+function addPageMetaTag( string $metaTag ) {
+	global $HTML;
+	$HTML->metaTags[] = $metaTag;
 }
 /**
- * Loads additional css stylesheet files if any has been set
- * @global $_page
+ * Adds javascript files to page object
+ * @param string $path
+ * @global $HTML
  */
-function doHeadCssInc() {
-	global $_page;
-	$option = $_page->getMetaItem(Page::META_CSS_FILE);
-	if( isset($option[0]) )
-		foreach( $option as $entry )
-			echo "\r\t" . '<link rel="stylesheet" href="' . escHtml($entry) . '" />' . PHP_EOL;
-	unset( $option, $entry );
+function addPageJsFile( string $path ) {
+	global $HTML;
+	$HTML->jsFiles[] = $path;
 }
 /**
- * Outputs additional page stylesheet code if any has been set
- * @global $_page
+ * Adds javascript codes to page object
+ * @param string $code
+ * @global $HTML
  */
-function doHeadCssTag() {
-	global $_page;
-	$option = $_page->getMetaItem(Page::META_CSS_CODE);
-	if( isset($option[0]) )
-		foreach( $option as $entry )
-			echo '<style type="text/css">' . escHtml($entry) . '</style>' . PHP_EOL;
-	unset( $option, $entry );
+function addPageJsCode( string $code ) {
+	global $HTML;
+	$HTML->jsCodes[] = $code;
+}
+/**
+ * Adds stylesheet fiile to page object
+ * @param string $path
+ * @global $HTML
+ */
+function addPageCssFile( string $path ) {
+	global $HTML;
+	$HTML->cssFiles[] = $path;
+}
+/**
+ * Adds raw stylesheet to page object
+ * @param string $style
+ * @global $HTML
+ */
+function addPageCssStyle( string $style ) {
+	global $HTML;
+	$HTML->cssStyles[] = $style;
 }
 /**
  * Outputs additional page meta (head) tags if any has been set
- * @global $_page
+ * @global $HTML
  */
-function doHeadMetaTag() {
-	global $_page;
-	$option = $_page->getMetaItem(Page::META_HEAD_TAG);
-	if( isset($option[0]) )
-		foreach( $option as $entry )
+function doPageMetaTags() {
+	global $HTML;
+	if( isset($HTML->metaTags[0]) )
+		foreach( $HTML->metaTags as $entry )
 			echo $entry;
-	unset( $option, $entry );
+}
+/**
+ * Loads javascript files in page
+ * @global $HTML
+ */
+function doPageJsFiles() {
+	global $HTML;
+	if( isset($HTML->jsFiles[0]) )
+		foreach( $HTML->jsFiles as $entry )
+			echo '<script src="' . escHtml($entry) . '"></script>';
+}
+/**
+ * Loads additional javascript raw code
+ * @global $HTML
+ */
+function doPageJsCodes() {
+	global $HTML;
+	if( isset($HTML->jsCodes[0]) )
+		array_walk( 'print', $HTML->jsCodes );
+	if( function_exists('onPageJsCode') )
+		onPageJsCode();
+}
+/**
+ * Loads additional css stylesheet files if any has been set
+ * @global $HTML
+ */
+function doPageCssFiles() {
+	global $HTML;
+	if( isset($HTML->cssFiles[0]) )
+		foreach( $HTML->cssFiles as $entry )
+			echo '<link rel="stylesheet" href="' . escHtml($entry) . '" />' . PHP_EOL;
+}
+/**
+ * Outputs additional page stylesheet code if any has been set
+ * @global $HTML
+ */
+function doPageCssTags() {
+	global $HTML;
+	if( isset($HTML->cssTags[0]) )
+		foreach( $HTML->cssTags as $entry )
+			echo '<style type="text/css">' . escHtml($entry) . '</style>' . PHP_EOL;
 }
 /**
  * Outputs a navigation breadcrumb using an array of links and a final text-only destination name
- * @global $_page
+ * @global $HTML
  * @param array $theCrumb An array in a format [ [ 'Previous', '/page/to/previous'], 'Current' ]
  */
-function htmBreadCrumb( array $theCrumb ) {
-	echo '<ul class="breadcrumb">';
+function BreadCrumb( array $theCrumb ) {
+	echo '<ol class="breadcrumb">';
 	foreach( $theCrumb as $entry )
 		if( is_array($entry) )
 			echo '<li><a href="', escHtml($entry[0]), '">', escHtml($entry[1]), '</a></li>';
 		else
-			echo '<li class="active">', escHtml($entry), '</li>';
-	echo '</ul>';
+			echo '<li class="active" aria-current="page">', escHtml($entry), '</li>';
+	echo '</ol>';
 }
 /**
  * Outputs a pagination list using a Paging object created, and a page URL

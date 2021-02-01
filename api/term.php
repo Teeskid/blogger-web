@@ -10,20 +10,20 @@
  * @subpackage Api
  */
 /** Load blog bootstrap file */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 
 /** Collect response options */
 $option = request( 'id', 'rowType' );
 if( ! ( $option->id || $option->rowType ) )
 	die();
 
-$response = new Response();
+$json = new Json();
 
 // Where clause for our query
-$where = [ 'rowType=' . $db->quote( $option->rowType ) ];
+$where = [ 'rowType=' . $_db->quote( $option->rowType ) ];
 // Incase a single item is requested
 if( $option->id )
-	$where[] = 'id=' . $db->quote( $option->id );
+	$where[] = 'id=' . $_db->quote( $option->id );
 $where = implode( ' AND ', $where );
 
 // Sorting phrase
@@ -33,11 +33,11 @@ $order = 'childCount ASC, title ASC';
 $limit = '0,5';
 
 /** Fetch the terms */
-$mTerms = $db->query( "SELECT id, master, title, about, childCount FROM Term WHERE $where ORDER BY $order LIMIT $limit" );
+$mTerms = $_db->query( "SELECT id, term, title, about, childCount FROM Term WHERE $where ORDER BY $order LIMIT $limit" );
 
-$response->setMessage( $mTerms->fetchAll() );
-$response->determineSuccess();
+$json->setMessage( $mTerms->fetchAll() );
+$json->determineSuccess();
 unset( $mTerms );
 
 /** Send back the response */
-jsonOutput( $response );
+closeJson( $json );

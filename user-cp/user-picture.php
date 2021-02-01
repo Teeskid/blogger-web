@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 require( ABSPATH . USER_UTIL . '/media.php' );
 
@@ -26,9 +26,9 @@ if(isset($_POST['submit']))
 		delete_media(parseInt($user->_media_id));
 		try
 		{
-			$stmt = $db->prepare(<<<EOS
+			$stmt = $_db->prepare(<<<EOS
 			DELETE FROM users_ WHERE adminId=? AND metaKey='_media_id';
-			INSERT INTO Person_ (adminId,metaKey,val) VALUES (?,'_media_id',?);
+			INSERT INTO Uzer_ (adminId,metaKey,val) VALUES (?,'_media_id',?);
 EOS
 );
 			$stmt->execute([$user->id, $user->id, $media->id]);
@@ -47,20 +47,20 @@ EOS
 else
 {
 
-	$user = $db->quote(REQUEST_ID);
-	$user = $db->query( 'SELECT a.id, b.val AS _media_id FROM users a LEFT JOIN users_ b ON a.id=b.adminId AND b.prop='_media_id' WHERE a.id=$user;' )->fetch();
+	$user = $_db->quote(REQUEST_ID);
+	$user = $_db->query( 'SELECT a.id, b.val AS _media_id FROM users a LEFT JOIN users_ b ON a.id=b.adminId AND b.prop='_media_id' WHERE a.id=$user;' )->fetch();
 	if(!$user){
 		header('location:'.getReturnUrl('404.php'));
 		exit;
 	}
-	$user->_media_id = $db->quote($user->_media_id);
-	$user->_media_img = $db->query( 'SELECT metaValue FROM media_ WHERE id=$user->_media_id AND metaKey='drawables'' )->fetchColumn();
+	$user->_media_id = $_db->quote($user->_media_id);
+	$user->_media_img = $_db->query( 'SELECT metaValue FROM media_ WHERE id=$user->_media_id AND metaKey='drawables'' )->fetchColumn();
 	$user->_media_img = json_decode($user->_media_img);
 	$user->_media_img = $user->_media_img->s;
 }
 $error = implode($error);
-$_page = new Page( 'Profile Picture', "/user-cp/user-cp-picture.php?id=$user->id" );
-include( 'html-header.php' );
+initHtmlPage( 'Profile Picture', "/user-cp/user-cp-picture.php?id=$user->id" );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div class="card card-small">
 	<div class="card-body">
@@ -88,6 +88,6 @@ include( 'html-header.php' );
 </div>
 
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

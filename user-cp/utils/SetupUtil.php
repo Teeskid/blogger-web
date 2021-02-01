@@ -9,11 +9,12 @@
  */
 /**
  * Generates Manifest.php which marks our blog configuration
- * @param object $config
+ * @param array $options
  * @throws Exception Provided the file creation failed
  */
-function generateManifestFile( object $config ) {
-	$authVars = generateToken(3);
+function generateManifest( array $options ) {
+	$uniqueKeys = generateUniqueKeys(3);
+	$dstFile = ABSPATH . '/Manifest.php';
 	$content = [
 		'<?php',
 		'/**' ,
@@ -31,23 +32,23 @@ function generateManifestFile( object $config ) {
 		'/**',
 		' * @var string Database host name',
 		' */',
-		'define( \'DB_HOST\', \'' . $config->dbHost . '\' );', '',
+		'define( \'DB_HOST\', \'' . $options['dbHost'] . '\' );', '',
 		'/**',
 		' * @var string Database name where the blog is installed',
 		' */',
-		'define( \'DB_NAME\', \'' . $config->dbName . '\' );', '',
+		'define( \'DB_NAME\', \'' . $options['dbName'] . '\' );', '',
 		'/**',
 		' * @var string The MYSQL Database userName',
 		' */',
-		'define( \'DB_USER\', \'' . $config->dbUser . '\' );', '',
+		'define( \'DB_USER\', \'' . $options['dbUser'] . '\' );', '',
 		'/**',
-		' * @var string The MYSQL Database password',
+		' * @var string The MYSQL Database Password',
 		' */',
-		'define( \'DB_PASS\', \'' . $config->password . '\' );', '',
+		'define( \'DB_PASS\', \'' . $options['dbPass'] . '\' );', '',
 		'/**',
 		' * @var string The character sets our blog database should use',
 		' */',
-		'define( \'DB_CHRS\', \'' . $config->charset . '\' );', '',
+		'define( \'DB_CHRS\', \'' . $options['charset'] . '\' );', '',
 		'/**',
 		' * - Generated and secured authentication tokens (do not edit).',
 		' * - Editing these tokens may lead to all users having to reset their passwords',
@@ -55,60 +56,58 @@ function generateManifestFile( object $config ) {
 		'/**',
 		' * @var string Token used to encrypt user password and password-reset tokens',
 		' */',
-		'define( \'AUTH_KEY\',        \'' . $authVars[0] . '\' );',
+		'define( \'AUTH_KEY\',        \'' . $uniqueKeys[0] . '\' );',
 		'/**',
 		' * @var string Token used to encrypt user session token',
 		' */',
-		'define( \'LOGIN_KEY\',   \'' . $authVars[1] . '\' );',
+		'define( \'LOGIN_KEY\',   \'' . $uniqueKeys[1] . '\' );',
 		'/**',
 		' * @var string Token used to encrypt nonce keys. Nonce are for encrypting actions like editing a post',
 		' */',
-		'define( \'NONCE_SALT\',       \'' . $authVars[2] . '\' );', '',
+		'define( \'NONCE_SALT\',       \'' . $uniqueKeys[2] . '\' );', '',
 		'/**',
 		' * @var string Protocol and domain without and ending slash e.g http(s)://example.com',
 		' */',
-		'define( \'BASE_URL\', \'' . BASE_URL . '\' );',
+		'define( \'ROOTURL\', \'' . $options['rootUrl'] . '\' );',
 		'/**',
 		' * @var string The blog root path, if it\'s installed in a subdirectory of the server root,',
 		' * 	 or it is an alias. Leave empty if you installed it in the server root.',
 		' */',
-		'define( \'BASEPATH\', \'' . BASEPATH . '\' );', ''
+		'define( \'BASEURI\', \'' . $options['baseUri'] . '\' );', ''
 	];
 	$content = implode( PHP_EOL, $content );
-	if( ! file_put_contents( ABSPATH . '/Manifest.php', $content ) )
+	if( ! file_put_contents( $dstFile, $content ) )
 		throw new Exception( 'Failed to create <code>Manifest.php</code>' );
-	chmod( ABSPATH . '/Manifest.php', 0666 );
+	chmod( $dstFile, 0666 );
 }
 /**
  * Generates root .htaccess file
+ * @param array $options
  * @throws Exception Provided the file creation failed
  */
- function generateHtaccessFile() {
-	// detect if blog is using https
-	$isHttps = isHttps();
-	// Path to the file
+ function generateApacheRules( array $options ) {
 	$dstFile = ABSPATH . '/.htaccess';
 	$content = [
 		'<IfModule mod_rewrite.c>',
 		'RewriteEngine On',
-		'RewriteBase ' . BASEPATH . '/',
-		(function() use( $isHttps ) {
+		'RewriteBase ' . $options['baseUri'] . '/',
+		(function() use( $options ) {
 			$lines = [];
-			if( $isHttps )
+			if( $options['isHttps'] )
 				$lines[] = 'RewriteCond %{HTTPS} off';
-			if( false !== strpos( BASE_URL, 'www.' ) )
+			if( false !== strpos( $options['rootUrl'], 'www.' ) )
 				$lines[] = 'RewriteCond %{HTTP_HOST} !^www\.';
 			$lines = implode( ' [OR] ' . PHP_EOL, $lines );
 			if( $lines ) {
 				$lines .= $lines . ' [NC]';
-				$lines .= 'RewriteRule (.*) ' . BASE_URL . '%{REQUEST_URI} [L]';
+				$lines .= 'RewriteRule (.*) ' . $options['rootUrl'] . '%{REQUEST_URI} [L]';
 			}
 			return $lines;
 		})(),
-		'RewriteRule ^' . BASEPATH . '/index\.php$ - [L]',
+		'RewriteRule ^' . $options['baseUri'] . '/index\.php$ - [L]',
 		'RewriteCond %{REQUEST_FILENAME} !-f',
 		'RewriteCond %{REQUEST_FILENAME} !-d',
-		'RewriteRule . ' . BASEPATH . '/index.php [L]',
+		'RewriteRule . ' . $options['baseUri'] . '/index.php [L]',
 		'</IfModule>'
 	];
 	$content = implode( PHP_EOL, $content );
@@ -118,52 +117,55 @@ function generateManifestFile( object $config ) {
  }
 /**
  * Generates root lighttpd file which contains lighttpd rewrite rules
+ * @param array $options
  * @throws Exception Provided the file creation failed
  */
-function generateLighttpdFile() {
+function generateHttpdRules( array $options ) {
+	$dstFile = ABSPATH . '/.lighttpd';
 	$content = [
-		'$HTTP["host"] = "(' . $_SERVER['HTTP_HOST'] . '.+)" {',
+		'$HTTP["host"] = "(' . $options['httpHost'] . '.+)" {',
 		'  url.rewrite-final = (',
-		'	"^' . BASEPATH . '/index.php$" => "' . BASEPATH . '"',
+		'	"^' . $options['baseUri'] . '/index.php$" => "' . $options['baseUri'] . '"',
 		'  )',
 		'  url.rewrite-if-not-file = (',
-		'	"^' . BASEPATH . '/.*$" => "' . BASEPATH . '/index.php"',
+		'	"^' . $options['baseUri'] . '/.*$" => "' . $options['baseUri'] . '/index.php"',
 		'  )',
 		'}'
 	];
 	$content = implode( PHP_EOL, $content );
-	if( ! file_put_contents( ABSPATH . '/.lighttpd', $content ) )
+	if( ! file_put_contents( $dstFile, $content ) )
 		throw new Exception( 'Failed to create <code>.lighttpd</code> file' );
-	chmod( ABSPATH . '/.lighttpd', 0666 );
+	chmod( $dstFile, 0666 );
 }
 /**
  * Generates root robots.txt file for search engines
+ * @param array $options
  * @throws Exception Provided the file creation failed
  */
-function generateRobotsFile() {
+function generateSearchRobot( array $options ) {
 	$dstFile = ABSPATH . '/robots.txt';
 	$content = [
 		'User Agent *',
-		'Allow ' . BASEPATH . '/',
-		'DisAllow ' . BASEPATH . '/',
-		'DisAllow ' . BASEPATH . '/api/',
-		'DisAllow ' . BASEPATH . '/css/',
-		'DisAllow ' . BASEPATH . '/fonts/',
-		'DisAllow ' . BASEPATH . '/images/',
-		'DisAllow ' . BASEPATH . '/js/',
-		'DisAllow ' . BASEPATH . '/handlers/',
-		'DisAllow ' . BASEPATH . '/storage/',
-		'DisAllow ' . USERPATH . '/',
-		'DisAllow ' . BASEPATH . '/utils/',
-		'DisAllow ' . BASEPATH . '/.htaccess',
-		'DisAllow ' . BASEPATH . '/.lighttpd',
-		'DisAllow ' . BASEPATH . '/404.php',
-		'DisAllow ' . BASEPATH . '/build.php',
-		'DisAllow ' . BASEPATH . '/Cache.php',
-		'DisAllow ' . BASEPATH . '/Load.php',
-		'DisAllow ' . BASEPATH . '/Manifest.php',
-		'DisAllow ' . BASEPATH . '/Rewrite.php',
-		'Sitemap: ' . BASE_URL . BASEPATH . '/sitemap.xml'
+		'Allow ' . $options['baseUri'] . '/',
+		'DisAllow ' . $options['baseUri'] . '/',
+		'DisAllow ' . $options['baseUri'] . '/api/',
+		'DisAllow ' . $options['baseUri'] . '/css/',
+		'DisAllow ' . $options['baseUri'] . '/fonts/',
+		'DisAllow ' . $options['baseUri'] . '/images/',
+		'DisAllow ' . $options['baseUri'] . '/js/',
+		'DisAllow ' . $options['baseUri'] . '/indexes/',
+		'DisAllow ' . $options['baseUri'] . '/storage/',
+		'DisAllow ' . $options['userPath'] . '/',
+		'DisAllow ' . $options['baseUri'] . '/utils/',
+		'DisAllow ' . $options['baseUri'] . '/.htaccess',
+		'DisAllow ' . $options['baseUri'] . '/.lighttpd',
+		'DisAllow ' . $options['baseUri'] . '/404.php',
+		'DisAllow ' . $options['baseUri'] . '/build.php',
+		'DisAllow ' . $options['baseUri'] . '/Cache.php',
+		'DisAllow ' . $options['baseUri'] . '/Load.php',
+		'DisAllow ' . $options['baseUri'] . '/Manifest.php',
+		'DisAllow ' . $options['baseUri'] . '/Handler.php',
+		'Sitemap: ' . $options['rootUrl'] . $options['baseUri'] . '/sitemap.xml'
 	];
 	$content = implode( PHP_EOL, $content );
 	if( ! file_put_contents( $dstFile, $content ) )
@@ -176,18 +178,18 @@ function generateRobotsFile() {
  * @param int $size [optional] Lenght of the tokens. Default is 32
  * @return array An array n-length tokens
  */
-function generateToken( int $maxlen = 1, int $size = 32 ) : array {
+function generateUniqueKeys( int $maxlen = 1, int $size = 32 ) : array {
 	$chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-	$secret_key = [];
+	$secretKey = [];
 	$max = strlen( $chars ) - 1;
 	for ( $i = 0; $i < $maxlen; $i++ ) {
 		$key = '';
 		for ( $j = 0; $j < $size; $j++ ) {
 			$key .= substr( $chars, rand( 0, $max ), 1 );
 		}
-		$secret_key[] = $key;
+		$secretKey[] = $key;
 	}
-	return $secret_key;
+	return $secretKey;
 }
 /**
  * Generate an almost-unique 2-bit token used as database name prefix

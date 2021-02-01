@@ -1,148 +1,186 @@
 <?php
 /**
  * Login and Password Request Handler
- *
- * Handles login and password request from web or app.
- *
  * @package Sevida
  * @subpackage Api
  */
 /** Load bootstrap file and a utilities */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . USER_UTIL . '/LoginUtil.php' );
-loginContants();
-/**
- * @var string
- */
-$action = request( 'action', 'client' );
-/**
- * @var \Response
- */
-$response = new Response();
-switch( $action->action ) {
-	/** Requests to recover / reset the password */
+
+$payLoad = getPayLoad();
+fillPayLoad( $payLoad, 'action', 'client' );
+$json = new Json();
+switch( $payLoad->action ) {
 	case 'recover':
-		/** Collect the request form data */
-		$login = request( 'userId', 'authKey', 'password' );
-		$response->setFeedBacks( [ 'password' ] );
-		if( ! preg_match( REGEX_PASSWORD, $login->password) )
-			$response->addMessage( 'Password too short or invalid' );
-		if( ! $response->hasMessage() ) {
-			$response->setFeedBack( 'password', true );
+		fillPayLoad( $payLoad, 'userId', 'authCode', 'password' );
+		$payLoad->userId = (int) $payLoad->userId;
+		$payLoad->authCode = (int) $payLoad->authCode;
+		if( ! preg_match( '#^[0-9]{6}$#', $payLoad->authCode ) )
+			$json->addMessage( 'invalid authorization code' );
+		if( ! preg_match( User::REGEX_PASSWORD, $payLoad->password) ) {
+			$json->setFeedBack( 'password', false );
+			$json->addMessage( 'password too short or invalid' );
+		}
+		if( ! $json->hasMessage() ) {
 			try {
-				/** Do some match, no match no recovery */
-				if( $login->authKey !== findAuthKey( $login->userId ) )
-					throw new Exception( 'Code mismatch, consider resending the code.' );
-				/** All good, encrypt his new password and update */
-				$login->password = password_hash( $login->password, PASSWORD_BCRYPT );
-				$update = $db->prepare( 'UPDATE Person SET password=? WHERE id=? LIMIT 1' )->execute( [ $login->password, $login->userId ] );
-				/** The auth token is called done with */
-				$delete = $db->prepare( 'DELETE FROM PersonMeta WHERE metaKey=? AND userId=? LIMIT 1' )->execute( [ 'authKey', $login->userId ] );
+				/**
+				 * Fetch authentication key
+				 */
+				$userToken = $_db->prepare( 'SELECT metaKey, metaValue FROM UzerMeta WHERE userId=? AND metaKey IN(?,?) LIMIT 2' );
+				$userToken->execute( [ $payLoad->userId, 'authCode', 'authTime' ] );
+				if( 2 !== $userToken->rowCount() )
+					throw new Exception( 'Token mismatched' );
+				$userToken = $userToken->fetchAll( PDO::FETCH_KEY_PAIR );
+				$userToken = (object) $userToken; 
+				$userToken->authTime = (int) $userToken->authTime;
+				$userToken->authCode = (int) $userToken->authCode;
+				if( $userToken->authCode !== $payLoad->authCode )
+					throw new Exception( 'You are using an expired link to reset an account password. Please consider resending new link.' );
+				/** Commit new password to database */
+				$update = $_db->prepare( 'UPDATE Uzer SET password=? WHERE id=? LIMIT 1' );
+				$update->execute( [ password_hash( $payLoad->password, PASSWORD_BCRYPT ), $payLoad->userId ] );
+				/** Clear old token to avoid re-use */
+				$delete = $_db->prepare( 'DELETE FROM UzerMeta WHERE metaKey=? AND userId=? LIMIT 1' );
+				$delete->execute( [ 'authToken', $payLoad->userId ] );
+				// Pretty done
+				$json->setFeedBack( 'password', true );
+				$json->setSuccess(true);
 			} catch( Exception $e ) {
-				$response->addMessage( $e->getMessage() );
+				$json->addMessage( $e->getMessage() );
 			}
 		}
-		$response->determineSuccess();
-		unset($login);
 		break;
 	case 'lostpass':
-		$login = request( 'id', 'userName' );
-		$response->setFeedBacks( [ 'userName' ] );
-		if( ! preg_match( REGEX_USERNAME, $login->userName) && ! preg_match( REGEX_USERNAME, $login->userName) )
-			$response->addMessage( 'Invalid username or email' );
-		if( ! $response->hasMessage() ) {
+		fillPayLoad( $payLoad,'userName', 'notRobot' );
+		if( ! preg_match( User::REGEX_USERNAME, $payLoad->userName ) && ! preg_match( User::REGEX_EMAIL, $payLoad->userName ) ) {
+			$json->setFeedBack( 'userName', false );
+			$json->addMessage( 'invalid username or email' );
+		}
+		if( ! $payLoad->notRobot ) {
+			$json->setFeedBack( 'notRobot', false );
+			$json->addMessage( 'please fill the captcha correctly' );
+		} else {
+			$json->setFeedBack( 'notRobot', true );
+		}
+		if( ! $json->hasMessage() ) {
 			try {
-				// Validate the username from database
-				if( ! ( $login->id = User::findId( $login->userName ) ) )
-					throw new Exception( 'Username or email not found' );
-				$response->setFeedBack( 'userName', true );
-				// Generate randown token
-				$login->mSecret = rand( 100000, 999999 );
-				$login->authKey = password_hash( $login->mSecret, PASSWORD_BCRYPT );
-				// Save the auth. key in database, it's more like a one time password
-				$replace = $db->prepare( 'REPLACE INTO PersonMeta (userId, metaKey, metaValue) VALUES (?, ?, ?)' );
-				$replace->execute( [ $login->id, 'authKey', $login->authKey ] );
-				// The user comes back with this to change his password
-				$login->authToken = [
-					'iss' => BASE_URL,
-					'aud' => BASE_URL,
-					'iat' => time(),
-					'uid' => $login->id,
-					'aut' => $login->authKey
-				];
+				/** Validate User  */
+				$userInfo = $_db->prepare( 'SELECT id, fullName, email, userName FROM Uzer WHERE userName=:checkValue OR email=:checkValue LIMIT 1' );
+				$userInfo->execute( [ 'checkValue' => $payLoad->userName ] );
+				if( 0 === $userInfo->rowCount() ) {
+					$json->setFeedBack( 'userName', false );
+					throw new Exception( 'username or email not found' );
+				}
+				$json->setFeedBack( 'userName', true );
+				$userInfo = $userInfo->fetch();
 				/**
-				 * Encode the payload using JWT
-				 * JWT is a third party plugin for encrypting json responses between server and client
+				 * Fetch authentication key
 				 */
-				$login->authToken = \Firebase\JWT\JWT::encode( $login->authToken, AUTH_KEY );
-				// Message to reset the password
-				$login = sprintf(
-					'<div class="d-block">Use this code [%s] to reset your password, or follow the click <a href="%s" class="alert-link">here</a></div>',
-					$login->mSecret, BASE_URL . USERPATH . '/login.php?action=recover&token=' . urlencode($login->authToken)
+				$userToken = $_db->prepare( 'SELECT metaKey, metaValue FROM UzerMeta WHERE userId=? AND metaKey IN(?,?) LIMIT 2' );
+				$userToken->execute( [ $userInfo->id, 'authCode', 'authTime' ] );
+				if( 2 === $userToken->rowCount() ) {
+					$userToken = $userToken->fetchAll( PDO::FETCH_KEY_PAIR );
+					$userToken = (object) $userToken; 
+					$userToken->authTime = (int) $userToken->authTime;
+					$userToken->authCode = (int) $userToken->authCode;
+					if( 300 > ( time() - $userToken->authTime ) )
+						$userToken = $userToken->authCode;
+					else
+						$userToken = false;
+				} else {
+					$userToken = false;
+				}
+				/** Needs to generate new randown token */
+				if( false === $userToken )
+					$userToken = rand( 100000, 999999 );
+				$userInfo->authCode = $userToken;
+				$userInfo->authTime = time();
+				$userToken = [
+					'iss' => ROOTURL,
+					'aud' => ROOTURL,
+					'iat' => $userInfo->authTime,
+					'aut' => $userInfo->authCode,
+					'userId' => $userInfo->id,
+				];
+				/** Commit auth key to database */
+				$replace = $_db->prepare( 'REPLACE INTO UzerMeta (userId, metaKey, metaValue) VALUES (?,?,?),(?,?,?)' );
+				$replace->execute( [
+					$userInfo->id, 'authCode', $userInfo->authCode,
+					$userInfo->id, 'authTime', $userInfo->authTime,
+				] );
+				/** Encode the payload with JWT */
+				$jwtToken = \Firebase\JWT\JWT::encode( $userToken, AUTH_KEY );
+				$jwtToken = urlencode($jwtToken);
+				$jwtToken = ROOTURL . USERURI . '/login.php?action=recover&token=' . $jwtToken;
+				// -> mail() the user with the token
+				$response = sprintf(
+					'<p class="d-block">Follow the link below to reset your password. This link expires in two minutes.<br> <a href="%s" class="alert-link">Reset my password</a><br> Please ignore this message if you did not request for it.</p>',
+					$jwtToken
 				);
-				// Send back the data needed
-				$response->setMessage( [ $login ] );
+				if( SE_DEBUG )
+					file_put_contents( ABSPATH . '/mail.txt', $jwtToken );
+				// -> mail( $userInfo->email );
+				$response = preg_replace( '#^(.).+?(.\@.).+?$#', '$1****$2**', $userInfo->email );
+				$response = 'A password reset link has been sent to your email address <strong>' . $response . '</strong>. Please follow the link to reset your password. The link expires in two minutes.<br>Thank You.';
+				$json->setMessage( $response );
+				$json->setSuccess();
 			} catch( Exception $e ) {
-				$response->addMessage( $e->getMessage() );
+				$json->addMessage( $e->getMessage() );
 			}
 		}
-		unset($login);
-		$response->determineSuccess();
 		break;
 	case 'login':
-		// Collect the form data
-		$login = request( 'userName', 'password', 'remember' );
-		$login->remember = $login->remember !== null;
-		$response->setFeedBacks( [ 'userName', 'password' ] );
-		/**
-		 * Let's do a little validation of the data to prevent database overload
-		 * You know some people are really gonna try something stupid with the login form
-		 * Think about DDOs
-		 */
-		if( ! preg_match( REGEX_USERNAME, $login->userName) && ! preg_match( REGEX_EMAILADD, $login->userName) )
-			$response->addMessage( 'Invalid username or email' );
-		if( ! preg_match( REGEX_PASSWORD, $login->password) )
-			$response->addMessage( 'Invalid password--' );
-		if( ! $response->hasMessage() ) {
+		fillPayLoad( $payLoad, 'userName', 'password', 'remember' );
+		$payLoad->remember = $payLoad->remember === 'true';
+		if( ! preg_match( User::REGEX_USERNAME, $payLoad->userName) && ! preg_match( User::REGEX_EMAIL, $payLoad->userName) ) {
+			$json->setFeedBack( 'userName', false );
+			$json->addMessage( 'invalid username or email' );
+		}
+		if( ! preg_match( User::REGEX_PASSWORD, $payLoad->password ) ) {
+			$json->setFeedBack( 'password', false );
+			$json->addMessage( 'Invalid password' );
+		}
+		if( ! $json->hasMessage() ) {
 			try {
-				// Validate the username from database
-				if( ! ( $login->id = User::findId( $login->userName ) ) )
+				$dbUserId = User::findId( $payLoad->userName );
+				if( 0 === $dbUserId ) {
+					$json->setFeedBack( 'userName', false );
 					throw new Exception( 'Invalid username' );
-				$response->setFeedBack( 'userName', true );
-				// Validate the password input by the used
-				if( ! matchPassword( $login->id, $login->password ) )
+				}
+				$json->setFeedBack( 'userName', true );
+
+				if( false === matchPassword( $dbUserId, $payLoad->password ) ) {
+					$json->setFeedBack( 'password', false );
 					throw new Exception( 'Invalid password' );
-				$response->setFeedBack( 'password', true );
-				// Generate an encrypted token with a regenerated the session id
-				session_regenerate_id(true);
-				$login->session = session_id();
-				if( ! $login->session )
-					throw new Exception( 'An unknown error occured. Please enable using caches and cookies in your browser settings' );
-				$login->session = password_hash( $login->session, PASSWORD_BCRYPT );
-				// Create a JWT payLoad for encrytion
-				$login = [
-					'iss' => BASE_URL,
-					'aud' => BASE_URL,
+				}
+				$json->setFeedBack( 'password', true );
+
+				/** Create an encoded JWT payload to save user login */
+				$jwtToken = [
+					'iss' => ROOTURL,
+					'aud' => ROOTURL,
 					'iat' => time(),
-					'uid' => $login->id,
-					'sid' => $login->session
+					'userId' => $dbUserId,
 				];
-				// Encrypt to a string using a key generated during setup
-				$login = \Firebase\JWT\JWT::encode( $login, LOGIN_KEY );
-				// Send back and log the response session level
-				$response->setMessage( [ $login ] );
-				$_SESSION['__LOGIN__'] = $login;
+				$jwtToken = \Firebase\JWT\JWT::encode( $jwtToken, LOGIN_KEY );
+				
+				/** Save the login status */
+				if( $payLoad->client === 'web' ) {
+					session_start();
+					$_SESSION['__LOGIN__'] = $jwtToken;
+					if( $payLoad->remember )
+						setcookie( '__LOGIN__', $jwtToken, time() + (60 * 60 * 60 * 24 * 30), BASEURI, ROOTURL );
+				}
+				$json->setMessage( [ 'authToken' => $jwtToken ] );
+				$json->setSuccess();
 			} catch( Exception $e ) {
-				$response->addMessage( $e->getMessage() );
+				$json->addMessage( $e->getMessage() );
 			}
 		}
-		unset($login);
-		$response->determineSuccess();
 		break;
 	default:
-		/** No action matched the ones we handle */
-		objectNotFound();
+		die();
 		exit;
 }
-// Finally say what happened
-jsonOutput( $response );
+closeJson( $json );

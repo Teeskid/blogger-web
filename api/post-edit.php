@@ -8,100 +8,117 @@
  * @subpackage Api
  */
 /**
- * Denoted that user needs to be logged in to perform this action
  * @var bool
  */
 define( 'REQUIRE_LOGIN', true );
+
 /** Load blog bootstrap file and utilities */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . USER_UTIL . '/PostUtil.php' );
+
 loadPostConstants();
-/**
- * The action needed to be taken
- * @var object
- */
-$action = request( 'action' );
-/**
- * We we are returning to the user in json format
- * @var \Response $response
- */
-$response = new Response();
-/** Find what exactly we need */
-switch( $action ) {
+
+$payLoad = getPayLoad();
+fillPayLoad( $payLoad, 'action' );
+$json = new Json();
+switch( $payLoad->action ) {
 	/** We are needed to delete a post */
 	case 'unlink':
 		try {
 			$postId = request( 'id' );
-			$delete = $db->prepare( 'DELETE FROM Post WHERE id=?' );
+			$delete = $_db->prepare( 'DELETE FROM Post WHERE id=?' );
 			$delete->execute( [ $postId ] );
-			$response->success = true;
+			$json->success = true;
 		} catch( Exception $e ) {
-			$response->addMessage( $e->getMessage() );
+			$json->addMessage( $e->getMessage() );
 		}
-		$response->determineSuccess();
+		$json->determineSuccess();
 		break;
 	/** We are needed to create or edit a post */
 	case 'modify':
 	case 'create':
-		/** @var object The user's form data */
-		$post = request( 'title', 'permalink', 'excerpt', 'content', 'thumbnail', 'category', 'status', 'password' );
-		$response->setFeedBacks( [ 'title', 'excerpt', 'content', 'password' ], true );
-		if( ! preg_match( REGEX_POST_TITLE, $post->title ) ) {
-			$response->setFeedBack( 'title', false );
-			$response->addMessage( 'Invalid / too short title' );
+		fillPayLoad( $payLoad, 'id', 'title', 'permalink', 'excerpt', 'content', 'thumbnail', 'category', 'labels', 'status', 'password' );
+		if( ! preg_match( REGEX_POST_TITLE, $payLoad->title ) ) {
+			$json->setFeedBack( 'title', false );
+			$json->addMessage( 'Invalid / too short title' );
 		}
-		if( ! $response->hasMessage() ) {
-			if( ! $post->category )
-				$post->category = 1;
-			$post->excerpt = makeExcerpt( empty($post->excerpt) ? $post->content : $post->excerpt );
-			$post->permalink = makePermalink( empty($post->permalink) ? $post->title : $post->permalink );
-			if( ! in_array( $post->status, POST_STATUS_ENUM ) )
-				$post->status = 'public';
+		if( 60 > strlen($payLoad->content) ) {
+			$json->setFeedBack( 'content', false );
+			$json->addMessage( 'Content too scanty' );
+		}
+		if( ! $json->hasMessage() ) {
+			$payLoad->category = parseInt( $payLoad->category ? $payLoad->category : 1 );
+			$payLoad->excerpt = makeExcerpt( empty($payLoad->excerpt) ? $payLoad->content : $payLoad->excerpt );
+			$payLoad->permalink = makePermalink( empty($payLoad->permalink) ? $payLoad->title : $payLoad->permalink );
+			if( ! in_array( $payLoad->status, POST_STATUS_ENUM ) )
+				$payLoad->status = 'public';
 			try {
-				$db->beginTransaction();
-				if( $action === 'modify' ) {
-					$postId = request( 'id' );
-					$tempId = Post::findId( $post->permalink );
-					if( $tempId && $tempId != $postId )
+				$_db->beginTransaction();
+				if( $payLoad->action === 'modify' ) {
+					$tempId = Post::findId( $payLoad->permalink );
+					if( $tempId && $tempId !== $payLoad->id )
 						throw new Exception( 'Another post exits with the title' );
-					$post->id = $postId;
-					$post->modified = time();
-					$insert = $db->prepare( 'UPDATE Post SET permalink=:permalink,title=:title,excerpt=:excerpt,content=:content,thumbnail=:thumbnail,category=:category,status=:status,modified=DATE(:modified),password=:password WHERE id=:id LIMIT 1' );
-					$insert->execute( get_object_vars($post) );
-				} elseif( $action === 'create' ) {
-					if( Post::findId( $post->permalink ) )
-						throw new Exception( 'There is a post with that title' );
-					$post->posted = $post->modified = time();
-					$post->author = $_login->userId;
-					$post->rowType = 'post';
-					$insert = $db->prepare( 'INSERT INTO Post (permalink,title,excerpt,content,thumbnail,category,author,posted,modified,status,password,rowType) VALUES (:permalink,:title,:excerpt,:content,:thumbnail,:category,:author,DATE(:posted),DATE(:modified),:status,:password,:rowType)' );
-					$insert->execute( get_object_vars($post) );
-					$post->id = parseInt( $db->lastInsertId() );
+					$payLoad->lastEdited = time();
+					$update = $_db->prepare( 'UPDATE Post SET permalink=?,title=?,excerpt=?,content=?,thumbnail=?,category=?,status=?,lastEdited=DATE(?),password=? WHERE id=? LIMIT 1' );
+					$update->execute( [
+						$payLoad->permalink,
+						$payLoad->title,
+						$payLoad->excerpt,
+						$payLoad->content,
+						$payLoad->thumbnail,
+						$payLoad->category,
+						$payLoad->status,
+						$payLoad->lastEdited,
+						$payLoad->password,
+						$payLoad->id,
+					] );
+				} elseif( $payLoad->action === 'create' ) {
+					if( Post::findId( $payLoad->permalink ) )
+						throw new Exception( 'There is a post with the title' );
+					$payLoad->datePosted = $payLoad->lastEdited = time();
+					$payLoad->author = $_usr->id;
+					$payLoad->rowType = 'post';
+					$insert = $_db->prepare( 'INSERT INTO Post (permalink,title,excerpt,content,thumbnail,category,status,author,datePosted,lastEdited,password,rowType) VALUES (?,?,?,?,?,?,?,DATE(?),DATE(?),?,?,?)' );
+					$insert->execute( [
+						$payLoad->permalink,
+						$payLoad->title,
+						$payLoad->excerpt,
+						$payLoad->content,
+						$payLoad->thumbnail,
+						$payLoad->category,
+						$payLoad->status,
+						$payLoad->author,
+						$payLoad->datePosted,
+						$payLoad->lastEdited,
+						$payLoad->password,
+						$payLoad->rowType,
+					] );
+					$payLoad->id = parseInt( $_db->lastInsertId() );
 				}
 				/** Commit attached tags to database */
-				if( is_array( $labels = request( 'labels' ) ) ) {
-					$labels = array_unique($labels);
-					$insert = array_fill( 0, count($labels), '(?,?)' );
+				if( is_array($payLoad->labels) ) {
+					$payLoad->labels = array_unique($payLoad->labels);
+					$insert = array_fill( 0, count($payLoad->labels), '(?,?)' );
 					$insert = implode( ', ', $insert );
-					foreach( $labels as &$value )
-						$value = [ $post->id, (int) $value ];
-					if( isset($labels[1]) )
-						$labels = call_user_func_array( 'array_merge', $labels );
+					foreach( $payLoad->labels as &$value )
+						$value = [ $payLoad->id, (int) $value ];
+					if( isset($payLoad->labels[1]) )
+						$payLoad->labels = call_user_func_array( 'array_merge', $payLoad->labels );
 					else
-						$labels = $labels[0];
-					$insert = $db->prepare( 'REPLACE INTO TermLink (postId, termId) VALUES ' . $insert );
-					$insert->execute( $labels );
+						$payLoad->labels = $payLoad->labels[0];
+					$insert = $_db->prepare( 'REPLACE INTO TermLink (postId, termId) VALUES ' . $insert );
+					$insert->execute( $payLoad->labels );
 				}
-				$db->commit();
+				$_db->commit();
 			} catch(Exception $e) {
-				if( $db->inTransaction() )
-					$db->rollBack();
-				$response->addMessage( $e->getMessage() );
+				if( $_db->inTransaction() )
+					$_db->rollBack();
+				$json->addMessage( $e->getMessage() );
 			}
 		}
-		$response->determineSuccess();
+		$json->determineSuccess();
 		break;
 	default:
 		die();
 }
-jsonOutput( $response );
+closeJson( $json );

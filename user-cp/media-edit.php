@@ -8,42 +8,44 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $action = request( 'action', 'redirect', 'id' );
 $action->redirect = $action->redirect ?? 'media.php';
 switch( $action->action ) {
 	case 'modify':
-		$media = $db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
+		$media = $_db->prepare( 'SELECT * FROM Post WHERE id=? AND rowType=? LIMIT 1' );
 		$media->execute( [ $action->id, 'media' ] );
 		if( 0 === $media->rowCount() )
-			redirect( BASEPATH . '/404.php' );
-		$media = $db->fetchClass( $media, 'Post' );
-		$_page = new Page( 'Edit Post', USERPATH . '/media-edit.php?action=modify&id=' . $media->id );
+			redirect( BASEURI . '/404.php' );
+		$media = $_db->fetchClass( $media, 'Post' );
+		initHtmlPage( 'Edit Post', 'media-edit.php?action=modify&id=' . $media->id );
 		break;
 	case 'create':
 		$media = new Media();
-		$_page = new Page( 'Create Post', USERPATH . '/media-new.php' );
+		initHtmlPage( 'Create Post', 'media-new.php' );
 		break;
 	default:
 		die();
 }
 if( $media->id ) {
-	$metaValue = $db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId=? AND metaKey=? LIMIT 1' );
+	$metaValue = $_db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId=? AND metaKey=? LIMIT 1' );
 	$metaValue->execute( [ $media->id, 'media_metadata' ] );
 	$metaValue = $metaValue->fetchColumn();
 	$metaValue = json_decode($metaValue);
 } else {
 	$metaValue = (object) [ 'fileName' => '' ];
 }
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
-<ol class="breadcrumb">
-	<li><a href="index.php">Home</a></li>
-	<li><a href="media.php">Media Library</a></li>
-	<li class="active"><?=$action->action?></li>
-</ol>
+<nav aria-label="breadcrumb">
+	<ol class="breadcrumb my-3">
+		<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+		<li class="breadcrumb-item"><a href="media.php">Media Library</a></li>
+		<li class="breadcrumb-item active" aria-current="page"><?=$action->action?></li>
+	</ol>
+</nav>
 <div class="container-sm">
 	<div class="card bg-light text-dark">
 		<div class="card-header">Enter new details</div>
@@ -74,8 +76,8 @@ include( 'html-header.php' );
 </div>
 <?php
 $action->redirect = json_encode($action->redirect);
-$_page->addPageMeta( Page::META_JS_FILE, USERPATH . '/js/async-form.js' );
-$_page->addPageMeta( Page::META_JS_CODE, <<<EOS
+addPageJsFile( 'js/async-form.js' );
+$HTML->addPageMeta( Page::META_JS_CODE, <<<EOS
 $(document).ready(function() {
 	var media = $("form#mediaForm");
 	media.find("input#title").change(function(event){
@@ -91,8 +93,8 @@ $(document).ready(function() {
 	media.find("#autoPermalink").change(function(event){
 		$("#permalink").attr("disabled", this.checked);
 	});
-	media.asyncForm({ url: "../api/media-edit.php", target: $action->redirect });
+	var asyncForm = AsyncForm(media.get(0), { url: "../api/media-edit.php", target: $action->redirect });
 });
 EOS
 );
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

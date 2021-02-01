@@ -1,16 +1,13 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Term Model
+ * @package Sevida
+ * @subpackage Utilities
  */
 class Term {
-	public $id;
-	public $master;
+	const TYPE_CAT = 'cat';
+	const TYPE_TAG = 'tag';
+	public $term;
 	public $title;
 	public $permalink;
 	public $rowType;
@@ -23,15 +20,15 @@ class Term {
 			$this->permalink = $permalink;
 	}
 	public static function getList( string $rowType, $notId = false ) : array {
-		global $db;
-		$mQuery = $db->prepare( 'SELECT id, master, title FROM Term WHERE rowType=? AND id != ? ORDER BY IF(id=1, 100, title)' );
+		global $_db;
+		$mQuery = $_db->prepare( 'SELECT id, term, title FROM Term WHERE rowType=? AND id != ? ORDER BY IF(id=1, 100, title)' );
 		$mQuery->execute( [ $rowType, $notId ] );
 		$mQuery = $mQuery->fetchAll();
 		return $mQuery;
 	}
 	public static function findId( string $permalink ) : int {
-		global $db;
-		$termId = $db->prepare( 'SELECT id FROM Term WHERE permalink=? LIMIT 1' );
+		global $_db;
+		$termId = $_db->prepare( 'SELECT id FROM Term WHERE permalink=? LIMIT 1' );
 		$termId->execute( [ $permalink ] );
 		$termId = parseInt( $termId->fetchColumn() );
 		return $termId;

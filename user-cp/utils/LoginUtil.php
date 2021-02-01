@@ -8,29 +8,18 @@
  * @subpackage Administration
  */
 /**
- * Loads login-based contants
- */
-function loginContants() {
-	/** @var string Valid syntax for matching email addresses */
-	define( 'REGEX_EMAILADD', '#^[a-z0-9-_]{5,}@[a-z0-9\.-]{5,}$#i' );
-	/** @var string Valid syntax for matching usernames */
-	define( 'REGEX_USERNAME', '#^[a-z0-9-_]{5,30}$#i' );
-	/** @var string Valid syntax for matching user passwords */
-	define( 'REGEX_PASSWORD', '#^[^<>{}\[\]]{5,20}$#i' );
-}
-/**
  * Fetches authentication key from database
  * @param int $userId The id of the user whose authentication key we are looking for
  * @return string An authentication key or a NULL if none was found
  */
-function findAuthKey( int $userId ) : string {
-	global $db;
-	$authKey = $db->prepare( 'SELECT metaValue FROM PersonMeta WHERE metaKey=? AND userId=? LIMIT 1' );
-	$authKey->execute( [ 'authKey', $userId ] );
-	if( $authKey->rowCount() === 0 )
+function findAuthToken( int $userId ) : string {
+	global $_db;
+	$authToken = $_db->prepare( 'SELECT metaValue FROM UzerMeta WHERE metaKey=? AND userId=? LIMIT 1' );
+	$authToken->execute( [ 'authToken', $userId ] );
+	if( 0 === $authToken->rowCount() )
 		return '';
-	$authKey = $authKey->fetchColumn();
-	return $authKey;
+	$authToken = $authToken->fetchColumn();
+	return $authToken;
 }
 /**
  * Finds password of the user requested
@@ -38,8 +27,8 @@ function findAuthKey( int $userId ) : string {
  * @return string
  */
 function findPassword( int $userId ) : string {
-	global $db;
-	$password = $db->prepare( 'SELECT password FROM Person WHERE id=? LIMIT 1' );
+	global $_db;
+	$password = $_db->prepare( 'SELECT password FROM Uzer WHERE id=? LIMIT 1' );
 	$password->execute( [ $userId ] );
 	if( $password->rowCount() === 0 )
 		return '';
@@ -65,7 +54,7 @@ function matchPassword( int $userId, string $password ) : bool {
  * @return bool
  */
 function matchAuthToken( int $userId, string $authToken ) : bool {
-	$authTokenHash = findAuthKey( $userId );
+	$authTokenHash = findAuthToken( $userId );
 	if( password_verify( $authToken, $authTokenHash ) )
 		return true;
 	return false;

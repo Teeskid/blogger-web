@@ -1,68 +1,66 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Post Request Handler
+ * @package Sevida
+ * @subpackage Handlers
  */
-$theValue = $_VARS['p'] ?? $_VARS['name'] ?? null;
+if( ! defined('ABSPATH') )
+	die();
+$theValue = $_GET['p'] ?? $_GET['name'] ?? null;
 $theValue = [ 'value' => $theValue ];
-$postType = $db->prepare( 'SELECT rowType FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
+$postType = $_db->prepare( 'SELECT rowType FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
 $postType->execute( $theValue );
 $postType = $postType->fetchColumn();
 if( ! $postType )
-	redirect( BASEPATH . '/404.php' );
+	redirect( BASEURI . '/404.php' );
 
 if( $postType === 'page' ) {
-	require( ABSPATH . HANDLERS . '/page.php' );
+	require( ABSPATH . INDICES . '/page.php' );
 	return false;
 }
 
-$post  = $db->prepare( 'SELECT * FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
+$post  = $_db->prepare( 'SELECT * FROM Post WHERE id=:value OR permalink=:value LIMIT 1' );
 $post->execute( $theValue );
 
-$theCrumb = [ [ BASEPATH . '/', 'Home' ] ];
+$theCrumb = [ [ BASEURI . '/', 'Home' ] ];
 
-$post = $db->fetchClass( $post, 'Post' );
-$post->posted = parseDate( $post->posted );
+$post = $_db->fetchClass( $post, 'Post' );
+$post->datePosted = parseDate( $post->datePosted );
 $post->permalink = Rewrite::postUri( $post );
 $post->category = $post->category ?? 1;
 $post->author = $post->author ?? 1;
 
-$theTerms = $db->prepare( 'SELECT a.title, a.permalink FROM Term a WHERE a.id=:id OR id=(SELECT b.master FROM Term b WHERE b.id=:id LIMIT 1) ORDER BY a.master ASC' );
+$theTerms = $_db->prepare( 'SELECT a.title, a.permalink FROM Term a WHERE a.id=:id OR id=(SELECT b.term FROM Term b WHERE b.id=:id LIMIT 1) ORDER BY a.term ASC' );
 $theTerms->execute( [ 'id' => $post->category ] );
 $theTerms = $theTerms->fetchAll( PDO::FETCH_CLASS, 'Term' );
 foreach( $theTerms as $entry ) {
-	$entry->rowType = 'cat';
+	$entry->rowType = Term::TYPE_CAT;
 	$entry->permalink = Rewrite::termUri( $entry );
 	$theCrumb[] = [ $entry->permalink, $entry->title ];
 }
 $theCrumb[] = $post->title;
 unset($theTerms);
 
-$postAuthor = $db->prepare( 'SELECT userName, IFNULL(fullName, userName) as fullName FROM Person WHERE id=? LIMIT 1' );
+$postAuthor = $_db->prepare( 'SELECT userName, IFNULL(fullName, userName) as fullName FROM Uzer WHERE id=? LIMIT 1' );
 $postAuthor->execute( [ $post->author ] );
-$postAuthor = $db->fetchClass( $postAuthor, 'User' );
+$postAuthor = $_db->fetchClass( $postAuthor, 'User' );
 
 if( $post->thumbnail ) {
-	$postThumbnail = $db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId=? AND metaKey=\'media_metadata\' LIMIT 1' );
+	$postThumbnail = $_db->prepare( 'SELECT metaValue FROM PostMeta WHERE postId=? AND metaKey=\'media_metadata\' LIMIT 1' );
 	$postThumbnail->execute( [ $post->thumbnail ] );
 	$postThumbnail = $postThumbnail->fetchColumn();
 	$postThumbnail = json_decode($postThumbnail);
-	$postThumbnail = BASEPATH . DIR_UPLOAD . $postThumbnail->name;
+	$postThumbnail = BASEURI . DIR_UPLOAD . $postThumbnail->name;
 } else {
 	$postThumbnail = ABSPATH . DIR_IMAGES . 'thumbnail.png';
 }
 
 // Fetch the attached labels
-$postTags = $db->prepare( 'SELECT title, permalink FROM Term WHERE EXISTS(SELECT postId FROM TermLink WHERE TermLink.postId=? AND TermLink.termId=Term.id)' );
+$postTags = $_db->prepare( 'SELECT title, permalink FROM Term WHERE EXISTS(SELECT postId FROM TermLink WHERE TermLink.postId=? AND TermLink.termId=Term.id)' );
 $postTags->execute( [ $post->id ] );
 $postTags = $postTags->fetchAll( PDO::FETCH_CLASS, 'Term' );
 foreach( $postTags AS &$entry ) {
-	$entry->rowType = 'tag';
+	$entry->rowType = Term::TYPE_TAG;
 	$entry->title = escHtml($entry->title);
 	$entry->permalink = Rewrite::termUri( $entry );
 	$entry->permalink = escHtml($entry->permalink);
@@ -78,18 +76,18 @@ if( isset($postMedia[0]) ) {
 	$postMedia = array_map( 'parseInt', $postMedia );
 	$postMedia = array_map( 'escQuote', $postMedia );
 	$postMedia = implode( ',', $postMedia );
-	$postMedia = $db->prepare( 'SELECT a.title, a.mimeType, b.metaValue AS metadata FROM Post a LEFT JOIN PostMeta b ON b.postid=a.id AND b.metaKey=? WHERE a.id IN (' . $postMedia . ')' );
+	$postMedia = $_db->prepare( 'SELECT a.title, a.mimeType, b.metaValue AS metadata FROM Post a LEFT JOIN PostMeta b ON b.postid=a.id AND b.metaKey=? WHERE a.id IN (' . $postMedia . ')' );
 	$postMedia->execute( [ 'media_metadata' ] );
 	$postMedia = $postMedia->fetchAll( PDO::FETCH_CLASS, 'Media' );
 }
 
 // Fetch Related posts
-$postRelated = $db->prepare( 'SELECT a.id, a.title, a.permalink, a.posted, b.metaValue AS thumbnail FROM Post a LEFT JOIN PostMeta b ON b.postId=a.thumbnail AND b.metaKey=? WHERE a.rowType=? AND a.category=? LIMIT 9' );
+$postRelated = $_db->prepare( 'SELECT a.id, a.title, a.permalink, a.datePosted, b.metaValue AS thumbnail FROM Post a LEFT JOIN PostMeta b ON b.postId=a.thumbnail AND b.metaKey=? WHERE a.rowType=? AND a.category=? LIMIT 9' );
 $postRelated->execute( [ 'media_metadata', 'post', $post->category ] );
 $postRelated = $postRelated->fetchAll( PDO::FETCH_CLASS, 'Post' );
 
-// Fetch posted comments
-$postReplies = $db->prepare( 'SELECT master, id, fullName, email, website, content, replied FROM Reply WHERE postId=? ORDER BY replied DESC' );
+// Fetch datePosted comments
+$postReplies = $_db->prepare( 'SELECT term, id, fullName, email, website, content, replied FROM Reply WHERE postId=? ORDER BY replied DESC' );
 $postReplies->execute( [ $post->id ] );
 $postReplies = $postReplies->fetchAll(PDO::FETCH_GROUP);
 $postReplies[0] = isset($postReplies[0]) ? $postReplies : [];
@@ -99,7 +97,7 @@ if( isset($postThumbnail) )
 if( isset($postMedia) ) {
 	$regexReplace = function( $match ) use($post) {
 		$metadata = jsonUnserialize( $entry->metadata );
-		$entry->source = BASEPATH . uri_upload( $metadata->filename ?? '' );
+		$entry->source = BASEURI . uri_upload( $metadata->filename ?? '' );
 		if( false !== strpos( $entry->mimeType, 'image/' ) ) {
 			$entry = sprintf( '[img="%s"]%s[/img]', $entry->source, $post->title );
 		} else {
@@ -145,29 +143,29 @@ $post->content = preg_replace_callback( '#\[img="(.+?)"\]((.+?)\[/img\])?#s', fu
 }, $post->content );
 // parseBBCode( $entry->content );
 
-$_page = new Page( $post->title, $post->permalink );
-$_page->addPageMeta( Page::META_CSS_LOAD, 'post' );
+initHtmlPage( $post->title, $post->permalink );
+$HTML->addPageMeta( Page::META_CSS_LOAD, 'post' );
 $post->title = escHtml($post->title);
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
-include( ABSPATH . BASE_UTIL . '/HeadHtml.php' );
-htmBreadCrumb( $theCrumb );
+include( __DIR__ . '/header.php' );
+BreadCrumb( $theCrumb );
 ?>
 <div class="post">
 	<div class="post-head">
 		<div class="feed-date">
-			<span class="dd"><?=$post->posted->day?></span>
-			<span class="mm"><?=$post->posted->month?></span>
-			<span class="yy"><?=$post->posted->year?></span>
+			<span class="dd"><?=$post->datePosted->day?></span>
+			<span class="mm"><?=$post->datePosted->month?></span>
+			<span class="yy"><?=$post->datePosted->year?></span>
 		</div>
 		<h2><?=$post->title?></h2>
 	</div>
 	<div id="postBar" class="btn-group">
 <?php
 if( isLoggedIn() ) {
-	$return = rawurlencode($_page->path);
+	$return = rawurlencode($HTML->path);
 ?>
-		<a class="btn btn-sm" href="<?=USERPATH?>/post-edit.php?id=<?=$post->id?>&action=modify&redirect=<?=$return?>" target="_blank"><?=icon('edit')?> Edit</a>
-		<a class="btn btn-sm" href="<?=USERPATH?>/post-edit.php?id=<?=$post->id?>&action=delete&redirect=<?=$return?>" target="_blank"><?=icon('trash')?> Delete</a>
+		<a class="btn btn-sm" href="<?=USERURI?>/post-edit.php?id=<?=$post->id?>&action=modify&redirect=<?=$return?>" target="_blank"><?=icon('edit')?> Edit</a>
+		<a class="btn btn-sm" href="<?=USERURI?>/post-edit.php?id=<?=$post->id?>&action=delete&redirect=<?=$return?>" target="_blank"><?=icon('trash')?> Delete</a>
 <?php
 }
 ?>
@@ -199,7 +197,7 @@ if( $postType === 'post' ) {
 <div class="feed feed-slide owl-carousel owl-theme">
 <?php
 	foreach( $postRelated AS &$entry ) {
-		$entry->posted = parseDate( $entry->posted );
+		$entry->datePosted = parseDate( $entry->datePosted );
 		$entry->permalink = Rewrite::postUri( $entry );
 		$entry->thumbnail = json_decode($entry->thumbnail);
 		$entry->thumbnail = Media::getImage( $entry->thumbnail, 'large' );
@@ -209,9 +207,9 @@ if( $postType === 'post' ) {
 		<div class="feed-image">
 			<img alt="<?=escHtml($entry->title)?>" src="<?=$entry->thumbnail?>" />
 			<div class="feed-date">
-				<span class="dd"><?=$entry->posted->day?></span>
-				<span class="mm"><?=$entry->posted->month?></span>
-				<span class="yy"><?=$entry->posted->year?></span>
+				<span class="dd"><?=$entry->datePosted->day?></span>
+				<span class="mm"><?=$entry->datePosted->month?></span>
+				<span class="yy"><?=$entry->datePosted->year?></span>
 			</div>
 		</div>
 		<h3><a href="<?=$entry->permalink?>"><?=escHtml($entry->title)?></a></h3>
@@ -261,8 +259,8 @@ if( $postType === 'post' ) {
 			$htm_comment($entry);
 		?>
 	</div>
-	<form id="comment" class="comment-form reply" action="<?=BASEPATH?>/comment.php" method="post">
-		<input id="comment-parent" type="hidden" name="master" value="0" />
+	<form id="comment" class="comment-form reply" action="<?=BASEURI?>/comment.php" method="post">
+		<input id="comment-parent" type="hidden" name="term" value="0" />
 		<div class="right-align no-margin"><button id="comment-stop" class="btn" type="button">Cancel Reply</button></div>
 		<p class="text-center message">Your email address will not be published</p>
 		<input id="comment-redirect" type="hidden" name="redirect" value="<?=$post->permalink?>" />
@@ -274,7 +272,7 @@ if( $postType === 'post' ) {
 <?php
 		if( isLoggedIn() ) {
 ?>
-		<input id="comment-author" type="hidden" name="author" value="<?=$_login->userId?>" />
+		<input id="comment-author" type="hidden" name="author" value="<?=$_usr->id?>" />
 <?php
 	} else {
 ?>
@@ -314,7 +312,7 @@ if( $postType === 'post' ) {
 	</form>
 </div>
 <?php
-$_page->addPageMeta( Page::META_JS_CODE, <<<'EOS'
+function onPageJsCode() {
 $(document).ready(function(){
 	var owl = $('.feed.owl-carousel');
 	owl.owlCarousel({
@@ -358,9 +356,9 @@ $(document).ready(function(){
 	/*
 	$(".comment a[data-comment]").map(function(e, elem){
 		$(this).click(function(e){
-			var master = parseInt(e.target.closest("a").dataset.comment);
+			var term = parseInt(e.target.closest("a").dataset.comment);
 			$("form#comment").addClass("reply");
-			$("input#comment-parent").val(master);
+			$("input#comment-parent").val(term);
 		});
 	});
 	$("#comment-stop").click(function(e){
@@ -392,4 +390,4 @@ $(document).ready(function(){
 EOS
 );
 }
-include( ABSPATH . BASE_UTIL . '/TailHtml.php' );
+include( __DIR__ . '/footer.php' );

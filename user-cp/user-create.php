@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 $error = [];
@@ -44,7 +44,7 @@ if( isset($_POST['submit']) ) {
 		}
 		$user->password = md5($user->password);
 		$stmt = sprintf('INSERT INTO %s (userName,uri,email,role,state,password) VALUES (?,?,?,?,?,?)', users);
-		$stmt = $db->prepare($stmt);
+		$stmt = $_db->prepare($stmt);
 		$stmt->execute([
 			$user->userName,
 			$user->uri,
@@ -73,11 +73,11 @@ else
 $user->state = checked($user->state);
 
 $error = implode($error);
-$_page = new Page( 'Add User', "/user-cp/user-cp-create.php" );
-$_page->meta = <<<META
+initHtmlPage( 'Add User', "/user-cp/user-cp-create.php" );
+$HTML->meta = <<<META
 <link media="all" rel="stylesheet" href="css/admin.css" />
 META;
-include( 'html-header.php' );
+include_once( __DIR__ . '/header.php' );
 ?>
 <div class="card">
 	<div class="card-body">
@@ -112,9 +112,9 @@ include( 'html-header.php' );
 	</div>
 </div>
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 $(document).ready(function(){
 	//$("select#role").formSelect();
 });
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );

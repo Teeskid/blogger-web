@@ -1,53 +1,54 @@
 <?php
 /**
- * Project: Blog Management System With Sevida-Like UI
- * Developed By: Ahmad Tukur Jikamshi
- *
- * @facebook: amaedyteeskid
- * @twitter: amaedyteeskid
- * @instagram: amaedyteeskid
- * @whatsapp: +2348145737179
+ * Icon Cheesheet
+ * @package Sevida
+ * @subpackage Administration
  */
-$iconPack = @file_get_contents('icons.json');
-if( $iconPack ) {
-	$iconPack = json_decode( $iconPack, true );
+$icons = @file_get_contents('icons.json');
+if( file_exists('icon-data.php') ) {
+	require('icon-data.php');
 } else {
-	$iconPack = file_get_contents('../css/fa-all.min.css');
-	$iconNums = preg_match_all( '#\.fa-([a-z-]+).*?\{#', $iconPack, $iconPack );
-	$iconPack = $iconPack[1];
-	sort($iconPack);
-	file_put_contents( 'icons.json', json_encode($iconPack) );
+    $cache = '<?php $icons=[';
+
+	$icons = file_get_contents('../css/fa-all.min.css') . file_get_contents('../css/fa-brands.min.css');
+	preg_match_all( '#\.fa-([a-z-]+).*?\{#', $icons, $icons );
+    $icons = $icons[1];
+    $icons = array_unique($icons);
+    sort($icons);
+    foreach ( $icons as $key => $value ) {
+        $cache .= "'$value',";
+    }
+
+    $cache .= '];';
+	$cache = file_put_contents( 'icon-data.php', $cache );
 }
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Font Awesome</title>
-<link media="all" rel="stylesheet" href="css/bootstrap.min.css">
-<link media="all" rel="stylesheet" href="css/bootstrap-theme.min.css" />
-<link media="all" rel="stylesheet" href="../css/fontawesome.min.css">
-<link media="all" rel="stylesheet" href="../css/fa-all.min.css">
-<link media="all" rel="stylesheet" href="../css/fa-solid.min.css">
-<style type="text/css">
-
-</style>
+    <title>Font Awesome CheetSheet</title>
+    <link media="all" rel="stylesheet" href="css/bootstrap.min.css">
+    <link media="all" rel="stylesheet" href="css/bootstrap-theme.min.css" />
+    <link media="all" rel="stylesheet" href="../css/fontawesome.min.css">
+    <link media="all" rel="stylesheet" href="../css/fa-all.min.css">
+    <link media="all" rel="stylesheet" href="../css/fa-solid.min.css">
+    <link media="all" rel="stylesheet" href="../css/fa-brands.min.css">
 </head>
 <body>
 <div class="container">
 	<div class="page-header"><h1>Font Awesome Cheatsheet</h1></div>
 	<div class="row text-center">
-<?php
-foreach( $iconPack as $entry ) {
-	$entry = 'fa-' . $entry;
-?>
-		<div class="col-xs-4 col-sm-3 col-md-2">
-			<span class="fas fa-3x <?=escHtml($entry)?>"></span>
-			<p><?=escHtml($entry)?></p>
+        <?php
+        foreach( $icons as $entry ) {
+            $entry = 'fa-' . $entry;
+        ?>
+		<div class="col-sm-4 col-md-3 col-lg-2">
+			<span class="fas fa-3x <?=htmlentities($entry)?>"></span>
+			<p><?=htmlspecialchars($entry)?></p>
 		</div>
-<?php
-}
-?>
-	</ul>
+        <?php
+        }
+        ?>
+	</div>
 </div>
-<script></script>
 </body>
 </html>

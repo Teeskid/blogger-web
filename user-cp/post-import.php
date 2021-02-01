@@ -8,7 +8,7 @@
  * @instagram: amaedyteeskid
  * @whatsapp: +2348145737179
  */
-require( dirname(__FILE__) . '/Load.php' );
+require( __DIR__ . '/Load.php' );
 require( ABSPATH . BASE_UTIL . '/HtmlUtil.php' );
 
 if(isset($_POST['import']))
@@ -18,12 +18,12 @@ if(isset($_POST['import']))
 	$post = json_decode($post);
 	$post->permalink = prepare_makePermalink($post->permalink?$post->permalink:$post->title);
 	$post->excerpt = makeExcerpt($post->excerpt?$post->excerpt:$post->content);
-	$post->posted = formatDate(time());
+	$post->datePosted = formatDate(time());
 	$post->state = (int) $post->state;
-	$exist = $db->quote($post->permalink);
+	$exist = $_db->quote($post->permalink);
 	try
 	{
-		$exist = $db->query( 'SELECT COUNT(*) FROM Post WHERE permalink=$exist' )->fetchColumn();
+		$exist = $_db->query( 'SELECT COUNT(*) FROM Post WHERE permalink=$exist' )->fetchColumn();
 		if($exist) throw (new Exception('Post already exist !'));
 	}
 	catch(Exception $e)
@@ -32,8 +32,8 @@ if(isset($_POST['import']))
 	}
 	try
 	{
-		$stmt = $db->prepare( 'INSERT INTO Post SET title=?,permalink=?,categoryID=?,excerpt=?,content=?,state=?,posted=?,dateModified=?' );
-		$bool = $stmt->execute([$post->title,$post->permalink,$post->categoryID,$post->excerpt,$post->content,$post->state,$post->posted,$post->posted]);
+		$stmt = $_db->prepare( 'INSERT INTO Post SET title=?,permalink=?,categoryID=?,excerpt=?,content=?,state=?,datePosted=?,dateModified=?' );
+		$bool = $stmt->execute([$post->title,$post->permalink,$post->categoryID,$post->excerpt,$post->content,$post->state,$post->datePosted,$post->datePosted]);
 		header('Location:index.php');
 		exit;
 	}
@@ -55,7 +55,7 @@ $page->foo = <<<FOO
 	<li><a href="index.php">CLOSE</a></li>
 </ul>
 FOO;
-$options = $db->query( 'SELECT title,category FROM categories' )->fetchAll();
+$options = $_db->query( 'SELECT title,category FROM categories' )->fetchAll();
 $options = array_merge(([(object) ['category'=>0,'title'=>'Uncategorized']]), $options);
 foreach($options AS &$option)
 {
@@ -87,9 +87,9 @@ include_once( ABSPATH . USER_UTIL . '/HeadHtml.php' );
 	</div>
 </div>
 <?php
-$_page->readyjs = <<<JS
+$HTML->readyjs = <<<JS
 $(document).ready(function(){
 	$('select').formSelect();
 });
 JS;
-include( 'html-footer.php' );
+include_once( __DIR__ . '/footer.php' );
